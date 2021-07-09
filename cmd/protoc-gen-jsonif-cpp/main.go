@@ -38,59 +38,65 @@ func toQualifiedName(name string, pkg *string, parents []*descriptorpb.Descripto
 	return qualifiedName, nil
 }
 
-func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, error) {
+func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error) {
 	isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 	typeName := ""
+	defaultValue := ""
 	switch *field.Type {
 	case descriptorpb.FieldDescriptorProto_TYPE_DOUBLE:
 		typeName = "double"
+		defaultValue = "0"
 	case descriptorpb.FieldDescriptorProto_TYPE_FLOAT:
 		typeName = "float"
-	case descriptorpb.FieldDescriptorProto_TYPE_INT32:
+		defaultValue = "0"
+	case descriptorpb.FieldDescriptorProto_TYPE_INT32,
+		descriptorpb.FieldDescriptorProto_TYPE_SINT32,
+		descriptorpb.FieldDescriptorProto_TYPE_SFIXED32:
 		typeName = "int32_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_INT64:
+		defaultValue = "0"
+	case descriptorpb.FieldDescriptorProto_TYPE_INT64,
+		descriptorpb.FieldDescriptorProto_TYPE_SINT64,
+		descriptorpb.FieldDescriptorProto_TYPE_SFIXED64:
 		typeName = "int64_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_UINT64:
-		typeName = "uint64_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_UINT32:
+		defaultValue = "0"
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT32,
+		descriptorpb.FieldDescriptorProto_TYPE_FIXED32:
 		typeName = "uint32_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_SINT32:
-		typeName = "int32_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_SINT64:
-		typeName = "int64_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_SFIXED32:
-		typeName = "int32_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_SFIXED64:
-		typeName = "int64_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_FIXED64:
+		defaultValue = "0"
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT64,
+		descriptorpb.FieldDescriptorProto_TYPE_FIXED64:
 		typeName = "uint64_t"
-	case descriptorpb.FieldDescriptorProto_TYPE_FIXED32:
-		typeName = "uint32_t"
+		defaultValue = "0"
 	case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
 		typeName = "bool"
+		defaultValue = "false"
 	case descriptorpb.FieldDescriptorProto_TYPE_STRING:
 		typeName = "std::string"
+		defaultValue = ""
 	case descriptorpb.FieldDescriptorProto_TYPE_BYTES:
 		//typeName = "std::string"
-		return "", errors.New("bytes type not supported")
+		return "", "", errors.New("bytes type not supported")
 	case descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 		descriptorpb.FieldDescriptorProto_TYPE_GROUP,
 		descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		typeName = strings.ReplaceAll(*field.TypeName, ".", "::")
+		if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
+			defaultValue = fmt.Sprintf("%s::Invalid", typeName)
+		}
 	default:
-		return "", errors.New("invalid type")
+		return "", "", errors.New("invalid type")
 	}
 
 	if isRepeated {
-		return fmt.Sprintf("std::vector<%s>", typeName), nil
+		return fmt.Sprintf("std::vector<%s>", typeName), "", nil
 	} else {
-		return typeName, nil
+		return typeName, defaultValue, nil
 	}
 }
 
 func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
 	cpp.Typedefs.PI("enum class %s {", *enum.Name)
-	cpp.Typedefs.P("%s_Invalid = -1,", *enum.Name)
+	cpp.Typedefs.P("Invalid = -1,")
 	for _, v := range enum.Value {
 		cpp.Typedefs.P("%s = %d,", *v.Name, *v.Number)
 	}
@@ -113,7 +119,60 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	cpp.TagInvokes.Deindent()
 	cpp.TagInvokes.P("default:")
 	cpp.TagInvokes.Indent()
-	cpp.TagInvokes.P("jv = (int)%s::%s_Invalid;", qName, *enum.Name)
+	cpp.TagInvokes.P("jv = (int)%s::Invalid;", qName)
+	cpp.TagInvokes.P("break;")
+	cpp.TagInvokes.Deindent()
+	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.P("")
+	cpp.TagInvokes.PI("%s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
+	cpp.TagInvokes.P("return (%s)boost::json::value_to<int>(jv);", qName)
+	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.P("")
+
+	return nil
+}
+
+func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.FieldDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
+	typeName := internal.ToUpperCamel(*oneof.Name) + "Case"
+	fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+	upperName := strings.ToUpper(internal.ToSnakeCase(*oneof.Name))
+	cpp.Typedefs.PI("enum class %s {", typeName)
+	cpp.Typedefs.P("%s_NOT_SET = 0,", upperName)
+	for _, field := range fields {
+		cpp.Typedefs.P("k%s = %d,", internal.ToUpperCamel(*field.Name), *field.Number)
+	}
+	cpp.Typedefs.PD("};")
+	cpp.Typedefs.P("%s %s = %s::%s_NOT_SET;", typeName, fieldName, typeName, upperName)
+	cpp.Typedefs.PI("void clear_%s() {", fieldName)
+	cpp.Typedefs.P("%s = %s::%s_NOT_SET;", fieldName, typeName, upperName)
+	for _, field := range fields {
+		fieldType, _, err := toTypeName(field)
+		if err != nil {
+			return err
+		}
+		cpp.Typedefs.P("%s = %s();", internal.ToSnakeCase(*field.Name), fieldType)
+	}
+	cpp.Typedefs.PD("}")
+	cpp.Typedefs.P("")
+
+	qName, err := toQualifiedName(typeName, pkg, parents)
+	if err != nil {
+		return err
+	}
+	cpp.TagInvokes.P("// %s", qName)
+	cpp.TagInvokes.PI("void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.PI("switch (v) {")
+	for _, field := range fields {
+		cpp.TagInvokes.P("case %s::k%s:", qName, internal.ToUpperCamel(*field.Name))
+	}
+	cpp.TagInvokes.Indent()
+	cpp.TagInvokes.P("jv = (int)v;")
+	cpp.TagInvokes.P("break;")
+	cpp.TagInvokes.Deindent()
+	cpp.TagInvokes.P("default:")
+	cpp.TagInvokes.Indent()
+	cpp.TagInvokes.P("jv = (int)%s::%s_NOT_SET;", qName, upperName)
 	cpp.TagInvokes.P("break;")
 	cpp.TagInvokes.Deindent()
 	cpp.TagInvokes.PD("}")
@@ -142,12 +201,38 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		}
 	}
 
+	for i, oneof := range desc.OneofDecl {
+		var fields []*descriptorpb.FieldDescriptorProto
+		for _, field := range desc.Field {
+			if field.OneofIndex != nil && *field.OneofIndex == int32(i) {
+				fields = append(fields, field)
+			}
+		}
+		if err := genOneof(oneof, fields, pkg, append(parents, desc), cpp); err != nil {
+			return err
+		}
+	}
+
 	for _, field := range desc.Field {
-		typeName, err := toTypeName(field)
+		typeName, defaultValue, err := toTypeName(field)
 		if err != nil {
 			return err
 		}
-		cpp.Typedefs.P("%s %s;", typeName, *field.Name)
+		fieldName := internal.ToSnakeCase(*field.Name)
+		if len(defaultValue) != 0 {
+			defaultValue = " = " + defaultValue
+		}
+		cpp.Typedefs.P("%s %s%s;", typeName, fieldName, defaultValue)
+
+		if oneof := field.OneofIndex; oneof != nil {
+			oneofTypeName := internal.ToUpperCamel(*desc.OneofDecl[*oneof].Name) + "Case"
+			oneofFieldName := internal.ToSnakeCase(*desc.OneofDecl[*oneof].Name) + "_case"
+			cpp.Typedefs.PI("void set_%s(%s %s) {", fieldName, typeName, fieldName)
+			cpp.Typedefs.P("clear_%s();", oneofFieldName)
+			cpp.Typedefs.P("%s = %s::k%s;", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
+			cpp.Typedefs.P("this->%s = %s;", fieldName, fieldName)
+			cpp.Typedefs.PD("}")
+		}
 	}
 
 	cpp.Typedefs.PD("};")
@@ -161,7 +246,12 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	cpp.TagInvokes.PI("void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
 	cpp.TagInvokes.PI("jv = {")
 	for _, field := range desc.Field {
-		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", *field.Name, *field.Name)
+		fieldName := internal.ToSnakeCase(*field.Name)
+		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", fieldName, fieldName)
+	}
+	for _, oneof := range desc.OneofDecl {
+		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", fieldName, fieldName)
 	}
 	cpp.TagInvokes.PD("};")
 	cpp.TagInvokes.PD("}")
@@ -169,11 +259,26 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	cpp.TagInvokes.PI("%s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("%s v;", qName)
 	for _, field := range desc.Field {
-		typeName, err := toTypeName(field)
+		typeName, _, err := toTypeName(field)
 		if err != nil {
 			return err
 		}
-		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", *field.Name, typeName, *field.Name)
+		fieldName := internal.ToSnakeCase(*field.Name)
+		if field.OneofIndex != nil {
+			cpp.TagInvokes.PI("if (jv.as_object().find(\"%s\") != jv.as_object().end()) {", fieldName)
+		}
+		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldName)
+		if field.OneofIndex != nil {
+			cpp.TagInvokes.PD("}")
+		}
+	}
+	for _, oneof := range desc.OneofDecl {
+		typeName, err := toQualifiedName(internal.ToUpperCamel(*oneof.Name)+"Case", pkg, append(parents, desc))
+		if err != nil {
+			return err
+		}
+		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldName)
 	}
 	cpp.TagInvokes.P("return v;")
 	cpp.TagInvokes.PD("}")

@@ -61,21 +61,11 @@ func (u *unityFile) String() string {
 	return u.Top.String() + u.Typedefs.String() + u.Bottom.String()
 }
 
-func snakeToUpperCamel(name string) string {
-	xs := strings.Split(name, "_")
-	for i, x := range xs {
-		if len(x) != 0 {
-			xs[i] = strings.ToUpper(x[:1]) + x[1:]
-		}
-	}
-	return strings.Join(xs, "")
-}
-
 // foo.bar_baz を Foo.BarBaz に変換する
 func packageToNamespace(pkg string) string {
 	xs := strings.Split(pkg, ".")
 	for i, x := range xs {
-		xs[i] = snakeToUpperCamel(x)
+		xs[i] = internal.ToUpperCamel(x)
 	}
 	return strings.Join(xs, ".")
 }
@@ -84,7 +74,7 @@ func packageToNamespace(pkg string) string {
 func pathToUpperCamel(pkg string) string {
 	xs := strings.Split(pkg, "/")
 	for i, x := range xs {
-		xs[i] = snakeToUpperCamel(x)
+		xs[i] = internal.ToUpperCamel(x)
 	}
 	return strings.Join(xs, "/")
 }
@@ -141,7 +131,8 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, error) {
 
 func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, u *unityFile) error {
 	u.Typedefs.P("[System.Serializable]")
-	u.Typedefs.PI("public enum %s {", *enum.Name)
+	u.Typedefs.P("public enum %s", *enum.Name)
+	u.Typedefs.PI("{")
 	u.Typedefs.P("%s_Invalid = -1,", *enum.Name)
 	for _, v := range enum.Value {
 		u.Typedefs.P("%s = %d,", *v.Name, *v.Number)
