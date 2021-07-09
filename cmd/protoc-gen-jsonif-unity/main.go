@@ -21,42 +21,6 @@ type unityFile struct {
 	Typedefs internal.Formatter
 }
 
-/*
-namespace Tutorial
-{
-    [System.Serializable]
-    public class Person
-    {
-        [System.Serializable]
-        public enum PhoneType
-        {
-            PhoneType_Invalid = -1,
-            MOBILE = 0,
-            HOME = 1,
-            WORK = 2,
-        }
-
-        [System.Serializable]
-        public class PhoneNumber
-        {
-            public string number;
-            public PhoneType type;
-        }
-
-        public string name;
-        public int id;
-        public string email;
-        public PhoneNumber[] phones;
-        //Google.Protobuf.Timestamp LastUpdated;
-    }
-
-    [System.Serializable]
-    public class AddressBook
-    {
-        public Person[] people;
-    }
-}
-*/
 func (u *unityFile) String() string {
 	return u.Top.String() + u.Typedefs.String() + u.Bottom.String()
 }
@@ -133,12 +97,39 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	u.Typedefs.P("[System.Serializable]")
 	u.Typedefs.P("public enum %s", *enum.Name)
 	u.Typedefs.PI("{")
-	u.Typedefs.P("%s_Invalid = -1,", *enum.Name)
+	u.Typedefs.P("Invalid = -1,")
 	for _, v := range enum.Value {
 		u.Typedefs.P("%s = %d,", *v.Name, *v.Number)
 	}
 	u.Typedefs.PD("}")
 	u.Typedefs.P("")
+	return nil
+}
+
+func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.FieldDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, u *unityFile) error {
+	typeName := internal.ToUpperCamel(*oneof.Name) + "Case"
+	fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+	upperName := strings.ToUpper(internal.ToSnakeCase(*oneof.Name))
+	u.Typedefs.P("[System.Serializable]")
+	u.Typedefs.P("public enum %s", typeName)
+	u.Typedefs.PI("{")
+	u.Typedefs.P("%s_NOT_SET = 0,", upperName)
+	for _, field := range fields {
+		u.Typedefs.P("k%s = %d,", internal.ToUpperCamel(*field.Name), *field.Number)
+	}
+	u.Typedefs.PD("}")
+	u.Typedefs.P("public %s %s;", typeName, fieldName)
+	u.Typedefs.P("public void Clear%s()", typeName)
+	u.Typedefs.PI("{")
+	u.Typedefs.P("%s = %s.%s_NOT_SET;", fieldName, typeName, upperName)
+	for _, field := range fields {
+		fieldType, err := toTypeName(field)
+		if err != nil {
+			return err
+		}
+		u.Typedefs.P("%s = default(%s);", internal.ToSnakeCase(*field.Name), fieldType)
+	}
+	u.Typedefs.PD("}")
 	return nil
 }
 
@@ -159,12 +150,36 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		}
 	}
 
+	for i, oneof := range desc.OneofDecl {
+		var fields []*descriptorpb.FieldDescriptorProto
+		for _, field := range desc.Field {
+			if field.OneofIndex != nil && *field.OneofIndex == int32(i) {
+				fields = append(fields, field)
+			}
+		}
+		if err := genOneof(oneof, fields, pkg, append(parents, desc), u); err != nil {
+			return err
+		}
+	}
+
 	for _, field := range desc.Field {
 		typeName, err := toTypeName(field)
 		if err != nil {
 			return err
 		}
-		u.Typedefs.P("public %s %s;", typeName, *field.Name)
+		fieldName := internal.ToSnakeCase(*field.Name)
+		u.Typedefs.P("public %s %s;", typeName, fieldName)
+
+		if oneof := field.OneofIndex; oneof != nil {
+			oneofTypeName := internal.ToUpperCamel(*desc.OneofDecl[*oneof].Name) + "Case"
+			oneofFieldName := internal.ToSnakeCase(*desc.OneofDecl[*oneof].Name) + "_case"
+			u.Typedefs.P("public void Set%s(%s %s)", internal.ToUpperCamel(fieldName), typeName, fieldName)
+			u.Typedefs.PI("{")
+			u.Typedefs.P("Clear%s();", oneofTypeName)
+			u.Typedefs.P("%s = %s.k%s;", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
+			u.Typedefs.P("this.%s = %s;", fieldName, fieldName)
+			u.Typedefs.PD("}")
+		}
 	}
 
 	u.Typedefs.PD("}")
