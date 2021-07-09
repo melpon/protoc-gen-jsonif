@@ -287,6 +287,25 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	return nil
 }
 
+// 大文字と数字はそのまま、小文字は大文字に、それ以外は _ にする
+// test/foo.proto → TEST_FOO_PROTO
+func toPreprocessorName(name string) string {
+	r := ""
+	for _, c := range name {
+		switch {
+		case 'A' <= c && c <= 'Z':
+			r += string(rune(c))
+		case '0' <= c && c <= '9':
+			r += string(rune(c))
+		case 'a' <= c && c <= 'z':
+			r += string(rune(c - 'a' + 'A'))
+		default:
+			r += "_"
+		}
+	}
+	return r
+}
+
 func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorResponse_File, error) {
 	var pkgs []string
 	if file.Package != nil {
@@ -294,6 +313,9 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	}
 
 	cpp := cppFile{}
+	cpp.Top.P("#ifndef AUTO_GENERATED_PROTOC_GEN_JSONIF_CPP_%s", toPreprocessorName(*file.Name))
+	cpp.Top.P("#define AUTO_GENERATED_PROTOC_GEN_JSONIF_CPP_%s", toPreprocessorName(*file.Name))
+	cpp.Top.P("")
 	cpp.Top.P("#include <string>")
 	cpp.Top.P("#include <vector>")
 	cpp.Top.P("#include <stddef.h>")
@@ -334,6 +356,8 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	cpp.Bottom.PD("}")
 	cpp.Bottom.P("")
 	cpp.Bottom.P("}")
+	cpp.Bottom.P("")
+	cpp.Bottom.P("#endif")
 	cpp.Bottom.P("")
 	cpp.Bottom.P("#endif")
 
