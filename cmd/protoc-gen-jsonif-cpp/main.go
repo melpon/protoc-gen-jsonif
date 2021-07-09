@@ -81,7 +81,7 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error
 		descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		typeName = strings.ReplaceAll(*field.TypeName, ".", "::")
 		if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
-			defaultValue = fmt.Sprintf("%s::Invalid", typeName)
+			defaultValue = fmt.Sprintf("(%s)0", typeName)
 		}
 	default:
 		return "", "", errors.New("invalid type")
@@ -96,7 +96,6 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error
 
 func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
 	cpp.Typedefs.PI("enum class %s {", *enum.Name)
-	cpp.Typedefs.P("Invalid = -1,")
 	for _, v := range enum.Value {
 		cpp.Typedefs.P("%s = %d,", *v.Name, *v.Number)
 	}
@@ -119,7 +118,7 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	cpp.TagInvokes.Deindent()
 	cpp.TagInvokes.P("default:")
 	cpp.TagInvokes.Indent()
-	cpp.TagInvokes.P("jv = (int)%s::Invalid;", qName)
+	cpp.TagInvokes.P("jv = (int)(%s)0;", qName)
 	cpp.TagInvokes.P("break;")
 	cpp.TagInvokes.Deindent()
 	cpp.TagInvokes.PD("}")

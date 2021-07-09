@@ -97,7 +97,6 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	u.Typedefs.P("[System.Serializable]")
 	u.Typedefs.P("public enum %s", *enum.Name)
 	u.Typedefs.PI("{")
-	u.Typedefs.P("Invalid = -1,")
 	for _, v := range enum.Value {
 		u.Typedefs.P("%s = %d,", *v.Name, *v.Number)
 	}
