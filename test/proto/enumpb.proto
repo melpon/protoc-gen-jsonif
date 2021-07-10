@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package enumpb;
+
+enum Data {
+    FOO = 0;
+    BAR = 1;
+}

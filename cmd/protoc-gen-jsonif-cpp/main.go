@@ -360,6 +360,11 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	cpp.Bottom.P("")
 	cpp.Bottom.P("#endif")
 
+	for _, enum := range file.EnumType {
+		if err := genEnum(enum, file.Package, nil, &cpp); err != nil {
+			return nil, err
+		}
+	}
 	for _, desc := range file.MessageType {
 		if err := genDescriptor(desc, file.Package, nil, &cpp); err != nil {
 			return nil, err

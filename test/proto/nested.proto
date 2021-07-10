@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package nested.nested;
+
+message Test {
+    message NestedMessage {
+        string name = 1;
+    }
+    enum NestedEnum {
+        FOO = 0;
+        BAR = 1;
+        HOGE = 2;
+    }
+    NestedMessage nested_message = 1;
+    NestedEnum nested_enum = 2;
+}
+
+message Test2 {
+    Test test = 1;
+    Test.NestedMessage nested_message = 2;
+    Test.NestedEnum nested_enum = 3;
+}

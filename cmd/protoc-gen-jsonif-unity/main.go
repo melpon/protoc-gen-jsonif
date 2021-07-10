@@ -43,9 +43,10 @@ func pathToUpperCamel(pkg string) string {
 	return strings.Join(xs, "/")
 }
 
-func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, error) {
+func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error) {
 	isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 	typeName := ""
+	defaultValue := ""
 	switch *field.Type {
 	case descriptorpb.FieldDescriptorProto_TYPE_DOUBLE:
 		typeName = "double"
@@ -75,21 +76,23 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, error) {
 		typeName = "bool"
 	case descriptorpb.FieldDescriptorProto_TYPE_STRING:
 		typeName = "string"
+		defaultValue = "\"\""
 	case descriptorpb.FieldDescriptorProto_TYPE_BYTES:
 		//typeName = "std::string"
-		return "", errors.New("bytes type not supported")
+		return "", "", errors.New("bytes type not supported")
 	case descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 		descriptorpb.FieldDescriptorProto_TYPE_GROUP,
 		descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		typeName = "global::" + packageToNamespace((*field.TypeName)[1:])
+		defaultValue = fmt.Sprintf("new %s()", typeName)
 	default:
-		return "", errors.New("invalid type")
+		return "", "", errors.New("invalid type")
 	}
 
 	if isRepeated {
-		return fmt.Sprintf("%s[]", typeName), nil
+		return fmt.Sprintf("List<%s>", typeName), fmt.Sprintf("new List<%s>()", typeName), nil
 	} else {
-		return typeName, nil
+		return typeName, defaultValue, nil
 	}
 }
 
@@ -122,11 +125,15 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 	u.Typedefs.PI("{")
 	u.Typedefs.P("%s = %s.%s_NOT_SET;", fieldName, typeName, upperName)
 	for _, field := range fields {
-		fieldType, err := toTypeName(field)
+		fieldType, defaultValue, err := toTypeName(field)
 		if err != nil {
 			return err
 		}
-		u.Typedefs.P("%s = default(%s);", internal.ToSnakeCase(*field.Name), fieldType)
+		if len(defaultValue) == 0 {
+			u.Typedefs.P("%s = default(%s);", internal.ToSnakeCase(*field.Name), fieldType)
+		} else {
+			u.Typedefs.P("%s = %s;", internal.ToSnakeCase(*field.Name), defaultValue)
+		}
 	}
 	u.Typedefs.PD("}")
 	return nil
@@ -162,12 +169,16 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	}
 
 	for _, field := range desc.Field {
-		typeName, err := toTypeName(field)
+		typeName, defaultValue, err := toTypeName(field)
 		if err != nil {
 			return err
 		}
 		fieldName := internal.ToSnakeCase(*field.Name)
-		u.Typedefs.P("public %s %s;", typeName, fieldName)
+		if len(defaultValue) == 0 {
+			u.Typedefs.P("public %s %s;", typeName, fieldName)
+		} else {
+			u.Typedefs.P("public %s %s = %s;", typeName, fieldName, defaultValue)
+		}
 
 		if oneof := field.OneofIndex; oneof != nil {
 			oneofTypeName := internal.ToUpperCamel(*desc.OneofDecl[*oneof].Name) + "Case"
@@ -193,6 +204,8 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	u.Bottom.SetIndentUnit(4)
 	u.Typedefs.SetIndentUnit(4)
 
+	u.Top.P("using System.Collections.Generic;")
+
 	if file.Package != nil {
 		u.Top.P("namespace %s", packageToNamespace(*file.Package))
 		u.Top.PI("{")
@@ -202,6 +215,11 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	u.Bottom.P("}")
 
 	u.Typedefs.Indent()
+	for _, enum := range file.EnumType {
+		if err := genEnum(enum, file.Package, nil, &u); err != nil {
+			return nil, err
+		}
+	}
 	for _, desc := range file.MessageType {
 		if err := genDescriptor(desc, file.Package, nil, &u); err != nil {
 			return nil, err
@@ -222,6 +240,39 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	return resp, nil
 }
 
+func genJsonif() (*pluginpb.CodeGeneratorResponse_File, error) {
+	f := internal.Formatter{}
+	f.SetIndentUnit(4)
+
+	f.P("using UnityEngine;")
+	f.P("")
+	f.P("namespace Jsonif")
+	f.PI("{")
+	f.P("")
+	f.P("public static class Json")
+	f.PI("{")
+	f.P("public static string ToJson<T>(T v)")
+	f.PI("{")
+	f.P("return JsonUtility.ToJson(v);")
+	f.PD("}")
+	f.P("public static T FromJson<T>(string s)")
+	f.PI("{")
+	f.P("return JsonUtility.FromJson<T>(s);")
+	f.PD("}")
+	f.PD("}")
+	f.P("")
+	f.PD("}")
+
+	fileName := "Jsonif.cs"
+
+	content := f.String()
+	resp := &pluginpb.CodeGeneratorResponse_File{
+		Name:    &fileName,
+		Content: &content,
+	}
+	return resp, nil
+}
+
 func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	resp := &pluginpb.CodeGeneratorResponse{}
 	for _, file := range req.ProtoFile {
@@ -231,6 +282,14 @@ func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, e
 		}
 		resp.File = append(resp.File, respFile)
 	}
+
+	// 共通実装
+	respFile, err := genJsonif()
+	if err != nil {
+		return nil, err
+	}
+	resp.File = append(resp.File, respFile)
+
 	return resp, nil
 }
 

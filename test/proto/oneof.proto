@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package oneof;
+
+enum Enum {
+    FOO = 0;
+    BAR = 1;
+}
+
+message Message {
+    string name = 1;
+}
+
+message Test {
+    oneof test_oneof {
+        int32 a = 1;
+        string b = 2;
+        Enum c = 3;
+        Message d = 4;
+    }
+}

@@ -16,13 +16,15 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 - [x] repeated 対応
 - [x] oneof 対応 
 - [ ] デフォルト値対応
-- [ ] テスト (Unity のテストをどうするかが問題)
+- [ ] オブジェクトの同値判定対応
+- [x] テスト
 - [ ] 自動ビルド環境
 
 ## 対応する予定が無いもの
 
-- map, any 型の対応
+- bytes, map, any 型の対応
 - service 定義の対応
+- 実行速度の最適化（速度が欲しいならちゃんと protobuf 入れましょう）
 
 ## 例
 
@@ -196,3 +198,19 @@ namespace Test
     
 }
 ```
+
+## FAQ
+
+### Q. jsonif って何？
+
+A. JSON Interface の略です。
+
+本当は protoc-gen-json という名前にしようと思ってたのですが、protoc-gen-json というのは[既に存在](https://github.com/sourcegraph/prototools/blob/master/README.json.md) していて、これは proto ファイルそのものを JSON 化するものです。
+これは欲しい機能ではなかったし、単に protoc-gen-json というとこっちを指すんだとするとちょっと違うので、Interface を付けて別の名前にしました。
+
+### Q. protoc-gen って何？
+
+A. protoc で生成するプラグインの命名ルールです。
+
+protoc は、デフォルトでは `--<NAME>_out=...` と指定したら `protoc-gen-<NAME>` プログラムを実行してファイル生成を呼び出す仕組みに[なっています](。
+そのため protoc プラグインのリポジトリ名やバイナリ名に `protoc-gen-` プリフィックスを付けるのが一般的です。
