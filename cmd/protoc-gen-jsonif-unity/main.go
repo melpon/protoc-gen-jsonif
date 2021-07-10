@@ -303,6 +303,16 @@ func run() error {
 		return err
 	}
 
+	// proto2 ファイルがあったらエラーにする
+	for _, file := range req.ProtoFile {
+		if file.Syntax == nil {
+			return errors.New("syntax not specified. Supported syntax=proto3 only.")
+		}
+		if *file.Syntax != "proto3" {
+			return errors.New(fmt.Sprintf("syntax=%s not supported. Supported syntax=proto3 only.", *file.Syntax))
+		}
+	}
+
 	resp, err := gen(req)
 	if err != nil {
 		return err
