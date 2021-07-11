@@ -130,6 +130,80 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 	return nil
 }
 
+func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, u *unityFile) error {
+	u.Typedefs.P("public override bool Equals(object obj)")
+	u.Typedefs.PI("{")
+	u.Typedefs.P("var v = obj as %s;", *desc.Name)
+	u.Typedefs.P("if (v == null) return false;")
+
+	// oneof 以外の比較
+	for _, field := range desc.Field {
+		if field.OneofIndex == nil {
+			fieldName := internal.ToSnakeCase(*field.Name)
+			if *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED {
+				// List の場合は SequenceEqual で比較する
+				u.Typedefs.P("if (!this.%s.SequenceEqual(v.%s)) return false;", fieldName, fieldName)
+			} else {
+				u.Typedefs.P("if (!this.%s.Equals(v.%s)) return false;", fieldName, fieldName)
+			}
+		}
+	}
+	// oneof の比較
+	for _, oneof := range desc.OneofDecl {
+		oneofFieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		oneofTypeName := internal.ToUpperCamel(*oneof.Name) + "Case"
+		u.Typedefs.P("if (!this.%s.Equals(v.%s)) return false;", oneofFieldName, oneofFieldName)
+
+		for _, field := range desc.Field {
+			if field.OneofIndex != nil && *field.OneofIndex == *field.OneofIndex {
+				fieldName := internal.ToSnakeCase(*field.Name)
+				enumFieldName := internal.ToUpperCamel(*field.Name)
+				u.Typedefs.P("if (this.%s == %s.k%s && !this.%s.Equals(v.%s)) return false;",
+					oneofFieldName, oneofTypeName, enumFieldName, fieldName, fieldName)
+			}
+		}
+	}
+	u.Typedefs.P("return true;")
+	u.Typedefs.PD("}")
+	u.Typedefs.P("")
+	u.Typedefs.P("public override int GetHashCode()")
+	u.Typedefs.PI("{")
+	u.Typedefs.P("int hashcode = 1430287;")
+
+	// oneof 以外のハッシュ値
+	for _, field := range desc.Field {
+		if field.OneofIndex == nil {
+			fieldName := internal.ToSnakeCase(*field.Name)
+			if *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED {
+				// List の場合は各要素のハッシュ値を取得する
+				u.Typedefs.P("foreach (var v in this.%s) hashcode = hashcode * 7302013 ^ v.GetHashCode();", fieldName)
+			} else {
+				u.Typedefs.P("hashcode = hashcode * 7302013 ^ %s.GetHashCode();", fieldName)
+			}
+		}
+	}
+	// oneof のハッシュ値
+	for _, oneof := range desc.OneofDecl {
+		oneofFieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		oneofTypeName := internal.ToUpperCamel(*oneof.Name) + "Case"
+		u.Typedefs.P("hashcode = hashcode * 7302013 ^ %s.GetHashCode();", oneofFieldName)
+
+		for _, field := range desc.Field {
+			if field.OneofIndex != nil && *field.OneofIndex == *field.OneofIndex {
+				fieldName := internal.ToSnakeCase(*field.Name)
+				enumFieldName := internal.ToUpperCamel(*field.Name)
+				u.Typedefs.P("if (%s == %s.k%s) hashcode = hashcode * 7302013 ^ %s.GetHashCode();",
+					oneofFieldName, oneofTypeName, enumFieldName, fieldName)
+			}
+		}
+	}
+	u.Typedefs.P("return hashcode;")
+	u.Typedefs.PD("}")
+	u.Typedefs.P("")
+
+	return nil
+}
+
 func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, u *unityFile) error {
 	u.Typedefs.P("[System.Serializable]")
 	u.Typedefs.P("public class %s", *desc.Name)
@@ -183,6 +257,11 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		}
 	}
 
+	err := genEquals(desc, pkg, append(parents, desc), u)
+	if err != nil {
+		return err
+	}
+
 	u.Typedefs.PD("}")
 	u.Typedefs.P("")
 
@@ -196,6 +275,7 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	u.Typedefs.SetIndentUnit(4)
 
 	u.Top.P("using System.Collections.Generic;")
+	u.Top.P("using System.Linq;")
 
 	if file.Package != nil {
 		u.Top.P("namespace %s", packageToNamespace(*file.Package))

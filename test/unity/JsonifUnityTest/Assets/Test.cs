@@ -1,11 +1,17 @@
-﻿using D = System.Diagnostics.Debug;
-using UnityEngine;
+﻿using UnityEngine;
+using D = UnityEngine.Debug;
 using Jsonif;
 
 public class Test : MonoBehaviour
 {
     T Identify<T>(T v)
     {
+        var vs = Json.ToJson(v);
+        var r = Json.FromJson<T>(vs);
+        var rs = Json.ToJson(r);
+        D.Assert(v.Equals(r));
+        D.Assert(v.GetHashCode() == r.GetHashCode());
+        D.Assert(vs == rs);
         return Json.FromJson<T>(Json.ToJson(v));
     }
 

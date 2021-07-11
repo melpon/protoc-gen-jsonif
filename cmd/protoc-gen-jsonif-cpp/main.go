@@ -104,7 +104,7 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 		return err
 	}
 	cpp.TagInvokes.P("// %s", qName)
-	cpp.TagInvokes.PI("void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
 	cpp.TagInvokes.PI("switch (v) {")
 	for _, v := range enum.Value {
 		cpp.TagInvokes.P("case %s::%s:", qName, *v.Name)
@@ -121,7 +121,7 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
-	cpp.TagInvokes.PI("%s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
+	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("return (%s)boost::json::value_to<int>(jv);", qName)
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
@@ -157,7 +157,7 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 		return err
 	}
 	cpp.TagInvokes.P("// %s", qName)
-	cpp.TagInvokes.PI("void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
 	cpp.TagInvokes.PI("switch (v) {")
 	for _, field := range fields {
 		cpp.TagInvokes.P("case %s::k%s:", qName, internal.ToUpperCamel(*field.Name))
@@ -174,10 +174,42 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
-	cpp.TagInvokes.PI("%s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
+	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("return (%s)boost::json::value_to<int>(jv);", qName)
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
+
+	return nil
+}
+
+func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
+	cpp.Typedefs.PI("friend bool operator==(const %s& a, const %s& b) {", *desc.Name, *desc.Name)
+
+	// oneof 以外の比較
+	for _, field := range desc.Field {
+		if field.OneofIndex == nil {
+			fieldName := internal.ToSnakeCase(*field.Name)
+			cpp.Typedefs.P("if (a.%s != b.%s) return false;", fieldName, fieldName)
+		}
+	}
+	// oneof の比較
+	for _, oneof := range desc.OneofDecl {
+		oneofFieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		oneofTypeName := internal.ToUpperCamel(*oneof.Name) + "Case"
+		cpp.Typedefs.P("if (a.%s != b.%s) return false;", oneofFieldName, oneofFieldName)
+
+		for _, field := range desc.Field {
+			if field.OneofIndex != nil && *field.OneofIndex == *field.OneofIndex {
+				fieldName := internal.ToSnakeCase(*field.Name)
+				enumFieldName := internal.ToUpperCamel(*field.Name)
+				cpp.Typedefs.P("if (a.%s == %s::k%s && a.%s != b.%s) return false;",
+					oneofFieldName, oneofTypeName, enumFieldName, fieldName, fieldName)
+			}
+		}
+	}
+	cpp.Typedefs.P("return true;")
+	cpp.Typedefs.PD("}")
+	cpp.Typedefs.P("friend bool operator!=(const %s& a, const %s& b) { return !(a == b); }", *desc.Name, *desc.Name)
 
 	return nil
 }
@@ -231,6 +263,11 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		}
 	}
 
+	err := genEquals(desc, pkg, append(parents, desc), cpp)
+	if err != nil {
+		return err
+	}
+
 	cpp.Typedefs.PD("};")
 	cpp.Typedefs.P("")
 
@@ -239,7 +276,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		return err
 	}
 	cpp.TagInvokes.P("// %s", qName)
-	cpp.TagInvokes.PI("void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
 	cpp.TagInvokes.PI("jv = {")
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
@@ -252,7 +289,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	cpp.TagInvokes.PD("};")
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
-	cpp.TagInvokes.PI("%s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
+	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("%s v;", qName)
 	for _, field := range desc.Field {
 		typeName, _, err := toTypeName(field)

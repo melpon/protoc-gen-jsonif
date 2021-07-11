@@ -12,7 +12,12 @@
 
 template<class T>
 T identify(T v) {
-  return jsonif::from_json<T>(jsonif::to_json(v));
+  auto vs = jsonif::to_json(v);
+  auto r = jsonif::from_json<T>(vs);
+  auto rs = jsonif::to_json(v);
+  assert(r == v);
+  assert(rs == vs);
+  return r;
 }
 
 void test_empty() {
