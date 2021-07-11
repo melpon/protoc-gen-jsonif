@@ -31,6 +31,72 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 - service 定義の対応
 - 実行速度の最適化（速度が欲しいならちゃんと protobuf 入れましょう）
 
+## 使い方
+
+まず、[protobuf のリリース](https://github.com/protocolbuffers/protobuf/releases) から、自身のプラットフォームの最新のバイナリをダウンロードして下さい。
+Windows なら `protoc-<version>-win64.zip`、macOS なら　`protoc-<version>-osx-x86_64.zip` などです。
+
+ダウンロードが完了したら、これを展開し、`protoc/bin` ディレクトリに環境変数 `PATH` を通しておいて下さい。
+
+次に、[protoc-gen-jsonif のリリース](https://github.com/melpon/protoc-gen-jsonif/releases) から、`protoc-gen-jsonif.tar.gz` をダウンロードして下さい。
+
+ダウンロードが完了したら、これを展開し、自身のプラットフォームのディレクトリに環境変数 `PATH` を通しておいて下さい。
+Windows なら `protoc-gen-jsonif/windows/amd64`、macOS なら `protoc-gen-jsonif/macos/amd64` などです。
+
+次に以下の内容を `test.proto` として保存して下さい。
+
+```proto
+syntax = "proto3";
+
+package test;
+
+message Person {
+  string name = 1;
+}
+```
+
+あとは以下のように実行して `test.proto` ファイルを変換します。
+
+```
+mkdir -p out_cpp
+protoc --jsonif-cpp_out=out_cpp/
+```
+
+これで `out_cpp/` ディレクトリに C++ 用のファイルが出力されます。
+
+また、
+
+```
+mkdir -p out_unity
+protoc --jsonif-unity_out=out_unity/
+```
+
+こうすると `out_unity/` ディレクトリに Unity 用のファイルが出力されます。
+
+### PATH を通さずに実行する
+
+環境変数 `PATH` を設定しなくても、以下のように指定すれば実行できます。
+
+Windows 上で、ダウンロードした protoc が `./protoc` に、protoc-gen-jsonif が `./protoc-gen-jsonif` にあるという状態だとすると、
+
+```
+# C++
+mkdir -p out_cpp
+./protoc/bin/protoc.exe \
+  --plugin=protoc-gen-jsonif-cpp=./protoc-gen-jsonif/windows/amd64/protoc-gen-jsonif-cpp.exe \
+  --jsonif-cpp_out=out_cpp/ \
+  test.proto
+
+# Unity
+mkdir -p out_unity
+./protoc/bin/protoc.exe \
+  --plugin=protoc-gen-jsonif-unity=./protoc-gen-jsonif/windows/amd64/protoc-gen-jsonif-unity.exe \
+  --jsonif-unity_out=out_unity/ \
+  test.proto
+```
+
+これで `PATH` を設定しなくても変換できます。
+
 ## 例
 
 例では全て、以下のような `test.proto` ファイルがあるとしています。
@@ -48,7 +114,7 @@ message PersonList {
 }
 ```
 
-## C++
+### C++
 
 C++ 用のファイルを出力するには以下のように利用します。
 
@@ -154,7 +220,7 @@ inline std::string to_json(const T& v) {
 #endif
 ```
 
-## Unity
+### Unity
 
 Unity 用のファイルを出力するには以下のように利用します。
 
