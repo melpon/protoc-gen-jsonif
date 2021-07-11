@@ -57,27 +57,25 @@ protoc --jsonif-cpp_out=out/ test.proto
 #include "test.json.h"
 
 int main() {
-  std::string str = R"(
-{
-  "people": [{
-    "name": "hoge"
-  }, {
-    "name": "fuga"
-  }]
-}
-  )";
-  // JSON 文字列からのロード
-  test::PersonList p = jsonif::from_json<test::PersonList>(str);
+  test::PersonList p;
+
+  p.people.push_back(test::Person{"hoge"});
+  p.people.push_back(test::Person{"fuga"});
+
+  // JSON 文字列への変換
+  std::string str = jsonif::to_json(p);
+
+  std::cout << str << std::endl;
+  // → {"people":[{"name":"hoge"},{"name":"fuga"}]}
+
+  // JSON 文字列から元に戻す
+  p = jsonif::from_json<test::PersonList>(str);
 
   std::cout << p[0].name << std::endl;
   // → hoge
 
   std::cout << p[1].name << std::endl;
   // → fuga
-
-  // JSON 文字列へのシリアライズ
-  std::cout << jsonif::to_json<test::PersonList>(p) << std::endl;
-  // → {"people": [{"name": "hoge"}, {"name": "fuga" }]}
 }
 ```
 
@@ -164,23 +162,33 @@ protoc --jsonif-unity_out=out/ test.proto
 ```cs
     void Start()
     {
-        string json = "{\"people\":[{\"name\":\"hoge\"},{\"name\":\"fuga\"}]}";
-        var p = JsonUtility.FromJson<Test.PersonList>(json);
+        var p = new Test.PersonList();
+
+        p.people.Add(new Test.Person() { name = "hoge" });
+        p.people.Add(new Test.Person() { name = "fuga" });
+
+        // JSON 文字列への変換
+        string str = Jsonif.Json.ToJson(p);
+
+        Debug.Log(str);
+        // → {"people":[{"name":"hoge"},{"name":"fuga"}]}
+
+        // JSON 文字列から元に戻す
+        p = Jsonif.Json.FromJson<Test.PersonList>(str);
 
         Debug.Log(p.people[0].name);
         // → hoge
+
         Debug.Log(p.people[1].name);
         // → fuga
-
-        Debug.Log(JsonUtility.ToJson(p));
-        // → {"people":[{"name":"hoge"},{"name":"fuga"}]}
     }
 ```
 
-自動生成された `Test.cs` は以下のようになっています（若干変わっている可能性もあります）。
-Unity では JsonUtility を利用しています。
+自動生成された `Test.cs` と `Jsonif.cs` は以下のようになっています（若干変わっている可能性もあります）。
+Unity では内部的に JsonUtility を利用しています。
 
 ```cs
+// Test.cs
 namespace Test
 {
     
@@ -194,6 +202,27 @@ namespace Test
     public class PersonList
     {
         public global::Test.Person[] people;
+    }
+    
+}
+```
+```cs
+// Jsonif.cs
+using UnityEngine;
+
+namespace Jsonif
+{
+    
+    public static class Json
+    {
+        public static string ToJson<T>(T v)
+        {
+            return JsonUtility.ToJson(v);
+        }
+        public static T FromJson<T>(string s)
+        {
+            return JsonUtility.FromJson<T>(s);
+        }
     }
     
 }

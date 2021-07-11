@@ -3,14 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/melpon/protoc-gen-jsonif/cmd/internal"
-
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 )
@@ -52,26 +49,20 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error
 		typeName = "double"
 	case descriptorpb.FieldDescriptorProto_TYPE_FLOAT:
 		typeName = "float"
-	case descriptorpb.FieldDescriptorProto_TYPE_INT32:
+	case descriptorpb.FieldDescriptorProto_TYPE_INT32,
+		descriptorpb.FieldDescriptorProto_TYPE_SINT32,
+		descriptorpb.FieldDescriptorProto_TYPE_SFIXED32:
 		typeName = "int"
-	case descriptorpb.FieldDescriptorProto_TYPE_INT64:
+	case descriptorpb.FieldDescriptorProto_TYPE_INT64,
+		descriptorpb.FieldDescriptorProto_TYPE_SINT64,
+		descriptorpb.FieldDescriptorProto_TYPE_SFIXED64:
 		typeName = "long"
-	case descriptorpb.FieldDescriptorProto_TYPE_UINT64:
-		typeName = "ulong"
-	case descriptorpb.FieldDescriptorProto_TYPE_UINT32:
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT32,
+		descriptorpb.FieldDescriptorProto_TYPE_FIXED32:
 		typeName = "uint"
-	case descriptorpb.FieldDescriptorProto_TYPE_SINT32:
-		typeName = "int"
-	case descriptorpb.FieldDescriptorProto_TYPE_SINT64:
-		typeName = "long"
-	case descriptorpb.FieldDescriptorProto_TYPE_SFIXED32:
-		typeName = "int"
-	case descriptorpb.FieldDescriptorProto_TYPE_SFIXED64:
-		typeName = "long"
-	case descriptorpb.FieldDescriptorProto_TYPE_FIXED64:
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT64,
+		descriptorpb.FieldDescriptorProto_TYPE_FIXED64:
 		typeName = "ulong"
-	case descriptorpb.FieldDescriptorProto_TYPE_FIXED32:
-		typeName = "uint"
 	case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
 		typeName = "bool"
 	case descriptorpb.FieldDescriptorProto_TYPE_STRING:
@@ -293,43 +284,8 @@ func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, e
 	return resp, nil
 }
 
-func run() error {
-	in, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		return err
-	}
-	req := &pluginpb.CodeGeneratorRequest{}
-	if err := proto.Unmarshal(in, req); err != nil {
-		return err
-	}
-
-	// proto2 ファイルがあったらエラーにする
-	for _, file := range req.ProtoFile {
-		if file.Syntax == nil {
-			return errors.New("syntax not specified. Supported syntax=proto3 only.")
-		}
-		if *file.Syntax != "proto3" {
-			return errors.New(fmt.Sprintf("syntax=%s not supported. Supported syntax=proto3 only.", *file.Syntax))
-		}
-	}
-
-	resp, err := gen(req)
-	if err != nil {
-		return err
-	}
-
-	out, err := proto.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stdout.Write(out); err != nil {
-		return err
-	}
-	return nil
-}
-
 func main() {
-	err := run()
+	err := internal.RunPlugin(gen)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", filepath.Base(os.Args[0]), err)
 		os.Exit(1)
