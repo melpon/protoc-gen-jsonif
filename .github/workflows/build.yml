@@ -64,7 +64,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
-          prerelease: true
+          prerelease: false
       - uses: actions/download-artifact@v2
         with:
           name: protoc-gen-jsonif
