@@ -79,3 +79,13 @@ jobs:
           asset_path: protoc-gen-jsonif.tar.gz
           asset_name: protoc-gen-jsonif.tar.gz
           asset_content_type: application/gzip
+      - run: zip -r protoc-gen-jsonif.zip protoc-gen-jsonif
+      - name: Upload protoc-gen-jsonif Release Asset
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: protoc-gen-jsonif.zip
+          asset_name: protoc-gen-jsonif.zip
+          asset_content_type: application/zip
