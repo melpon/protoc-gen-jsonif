@@ -315,3 +315,21 @@ A. protoc で生成するプラグインの命名ルールです。
 
 protoc は、デフォルトでは `--<NAME>_out=...` と指定したら `protoc-gen-<NAME>` プログラムを実行してファイル生成を呼び出す仕組みになっています（`--plugin` オプションで上書きできます）。
 そのため protoc プラグインのリポジトリ名やバイナリ名に `protoc-gen-` プリフィックスを付けるのが一般的です。
+
+## ライセンス
+
+```
+   Copyright [2021] Wandbox LLC.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+```
