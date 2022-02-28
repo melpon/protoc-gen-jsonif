@@ -19,6 +19,7 @@ pushd test/proto
     empty.proto \
     enumpb.proto \
     importing.proto \
+    jsonfield.proto \
     message.proto \
     nested.proto \
     oneof.proto \

@@ -11,6 +11,11 @@
 
 ## develop
 
+## 0.3.0 (2022-02-28)
+
+- [ADD] protoc-gen-jsonif-cpp に json_name フィールドオプションを追加
+    - @melpon
+
 ## 0.2.0 (2022-02-28)
 
 - [ADD] protoc-gen-jsonif-cpp を bytes 型に対応

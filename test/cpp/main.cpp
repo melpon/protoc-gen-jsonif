@@ -10,6 +10,7 @@
 #include "oneof.json.h"
 #include "importing.json.h"
 #include "bytes.json.h"
+#include "jsonfield.json.h"
 
 template<class T>
 T identify(T v) {
@@ -152,6 +153,15 @@ void test_bytes() {
   assert(a.rp_data.at(1) == v2);
 }
 
+void test_jsonfield() {
+  jsonfield::Test a;
+  a.field = 10;
+  auto str = jsonif::to_json(a);
+  assert(str == R"({"test":10})");
+  a = identify(a);
+  assert(a.field == 10);
+}
+
 int main() {
   test_empty();
   test_message();
@@ -161,6 +171,7 @@ int main() {
   test_oneof();
   test_importing();
   test_bytes();
+  test_jsonfield();
 
   std::cout << "C++ Test passed" << std::endl;
 }

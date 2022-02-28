@@ -280,7 +280,8 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	cpp.TagInvokes.PI("jv = {")
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
-		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", fieldName, fieldName)
+		fieldKey := internal.GetJsonName(field, fieldName)
+		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", fieldKey, fieldName)
 	}
 	for _, oneof := range desc.OneofDecl {
 		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
@@ -297,10 +298,11 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			return err
 		}
 		fieldName := internal.ToSnakeCase(*field.Name)
+		fieldKey := internal.GetJsonName(field, fieldName)
 		if field.OneofIndex != nil {
-			cpp.TagInvokes.PI("if (jv.as_object().find(\"%s\") != jv.as_object().end()) {", fieldName)
+			cpp.TagInvokes.PI("if (jv.as_object().find(\"%s\") != jv.as_object().end()) {", fieldKey)
 		}
-		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldName)
+		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldKey)
 		if field.OneofIndex != nil {
 			cpp.TagInvokes.PD("}")
 		}
