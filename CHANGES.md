@@ -11,6 +11,11 @@
 
 ## develop
 
+## 0.2.0 (2022-02-28)
+
+- [ADD] protoc-gen-jsonif-cpp を bytes 型に対応
+    - @melpon
+
 ## 0.1.1 (2021-07-12)
 
 - [ADD] zip のバイナリも追加
