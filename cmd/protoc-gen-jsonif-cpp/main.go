@@ -71,8 +71,8 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error
 		typeName = "std::string"
 		defaultValue = ""
 	case descriptorpb.FieldDescriptorProto_TYPE_BYTES:
-		//typeName = "std::string"
-		return "", "", errors.New("bytes type not supported")
+		typeName = "std::string"
+		defaultValue = ""
 	case descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 		descriptorpb.FieldDescriptorProto_TYPE_GROUP,
 		descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:

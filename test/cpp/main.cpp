@@ -9,6 +9,7 @@
 #include "repeated.json.h"
 #include "oneof.json.h"
 #include "importing.json.h"
+#include "bytes.json.h"
 
 template<class T>
 T identify(T v) {
@@ -138,6 +139,19 @@ void test_importing() {
   assert(a.t.nanos == 0);
 }
 
+void test_bytes() {
+  std::string v("\x00\x01\x02\x03", 4);
+  std::string v2 = u8"あいうえお";
+  bytes::Test a;
+  a.data = v;
+  a.rp_data.push_back(v);
+  a.rp_data.push_back(v2);
+  a = identify(a);
+  assert(a.data == v);
+  assert(a.rp_data.at(0) == v);
+  assert(a.rp_data.at(1) == v2);
+}
+
 int main() {
   test_empty();
   test_message();
@@ -146,6 +160,7 @@ int main() {
   test_repeated();
   test_oneof();
   test_importing();
+  test_bytes();
 
   std::cout << "C++ Test passed" << std::endl;
 }

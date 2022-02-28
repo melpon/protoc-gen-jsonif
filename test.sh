@@ -15,11 +15,24 @@ pushd test/proto
   $INSTALL_DIR/protoc/bin/protoc.exe \
     --plugin=protoc-gen-jsonif-cpp=$BUILD_DIR/test/protoc-gen-jsonif-cpp.exe \
     --jsonif-cpp_out=$BUILD_DIR/test/cpp \
-    *.proto
+    bytes.proto \
+    empty.proto \
+    enumpb.proto \
+    importing.proto \
+    message.proto \
+    nested.proto \
+    oneof.proto \
+    repeated.proto
   $INSTALL_DIR/protoc/bin/protoc.exe \
     --plugin=protoc-gen-jsonif-unity=$BUILD_DIR/test/protoc-gen-jsonif-unity.exe \
     --jsonif-unity_out=../unity/JsonifUnityTest/Assets/Generated \
-    *.proto
+    empty.proto \
+    enumpb.proto \
+    importing.proto \
+    message.proto \
+    nested.proto \
+    oneof.proto \
+    repeated.proto
 popd
 
 g++ test/cpp/main.cpp -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/boost/include/ -o $BUILD_DIR/test/cpp/test.exe

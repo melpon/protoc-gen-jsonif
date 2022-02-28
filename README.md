@@ -15,6 +15,7 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 - [x] message, enum 対応
 - [x] repeated 対応
 - [x] oneof 対応 
+- [x] bytes 型の対応( protoc-gen-json-cpp のみ)
 - [x] オブジェクトの等値判定対応
 - [x] テスト
 - [x] 自動ビルド環境
@@ -22,7 +23,7 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 ## 対応するかもしれないもの
 
 - C++, Unity 以外の言語への対応
-- bytes 型の対応
+- protoc-gen-json-unity の bytes 型の対応（いい方法求む）
 - オブジェクトの大小の比較
 
 ## 対応する予定が無いもの
