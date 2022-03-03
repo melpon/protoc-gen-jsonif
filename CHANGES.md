@@ -11,6 +11,11 @@
 
 ## develop
 
+## 0.4.0 (2022-03-04)
+
+- [ADD] protoc-gen-jsonif-cpp に optimistic と discard_if_default カスタムオプションを追加
+    - @melpon
+
 ## 0.3.0 (2022-02-28)
 
 - [ADD] protoc-gen-jsonif-cpp に json_name フィールドオプションを追加
