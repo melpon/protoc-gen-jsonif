@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+import "extensions.proto";
+
+package optimistic;
+
+message Test {
+    option (json_message_optimistic) = true;
+    string a = 1;
+    string b = 2 [(json_optimistic) = false];
+}

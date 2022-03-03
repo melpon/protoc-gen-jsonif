@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/melpon/protoc-gen-jsonif/cmd/generated"
 	"github.com/melpon/protoc-gen-jsonif/cmd/internal"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 )
@@ -215,6 +217,9 @@ func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descr
 }
 
 func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
+	descOptimistic := proto.HasExtension(desc.Options, generated.E_JsonMessageOptimistic) && proto.GetExtension(desc.Options, generated.E_JsonMessageOptimistic).(bool)
+	descDiscard := proto.HasExtension(desc.Options, generated.E_JsonMessageDiscardIfDefault) && proto.GetExtension(desc.Options, generated.E_JsonMessageDiscardIfDefault).(bool)
+
 	cpp.Typedefs.PI("struct %s {", *desc.Name)
 
 	for _, enum := range desc.EnumType {
@@ -277,17 +282,28 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	}
 	cpp.TagInvokes.P("// %s", qName)
 	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
-	cpp.TagInvokes.PI("jv = {")
+	cpp.TagInvokes.P("boost::json::object obj;")
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
 		fieldKey := internal.GetJsonName(field, fieldName)
-		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", fieldKey, fieldName)
+		discard := descDiscard
+		if proto.HasExtension(field.Options, generated.E_JsonDiscardIfDefault) {
+			discard = proto.GetExtension(field.Options, generated.E_JsonDiscardIfDefault).(bool)
+		}
+
+		if discard {
+			cpp.TagInvokes.PI("if (v.%s != decltype(v.%s)()) {", fieldName, fieldName)
+		}
+		cpp.TagInvokes.P("obj[\"%s\"] = boost::json::value_from(v.%s);", fieldKey, fieldName)
+		if discard {
+			cpp.TagInvokes.PD("}")
+		}
 	}
 	for _, oneof := range desc.OneofDecl {
 		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
-		cpp.TagInvokes.P("{\"%s\", boost::json::value_from(v.%s)},", fieldName, fieldName)
+		cpp.TagInvokes.P("obj[\"%s\"] = boost::json::value_from(v.%s);", fieldName, fieldName)
 	}
-	cpp.TagInvokes.PD("};")
+	cpp.TagInvokes.P("jv = std::move(obj);")
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
 	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
@@ -299,11 +315,15 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		}
 		fieldName := internal.ToSnakeCase(*field.Name)
 		fieldKey := internal.GetJsonName(field, fieldName)
-		if field.OneofIndex != nil {
+		optimistic := descOptimistic
+		if proto.HasExtension(field.Options, generated.E_JsonOptimistic) {
+			optimistic = proto.GetExtension(field.Options, generated.E_JsonOptimistic).(bool)
+		}
+		if field.OneofIndex != nil || optimistic {
 			cpp.TagInvokes.PI("if (jv.as_object().find(\"%s\") != jv.as_object().end()) {", fieldKey)
 		}
 		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldKey)
-		if field.OneofIndex != nil {
+		if field.OneofIndex != nil || optimistic {
 			cpp.TagInvokes.PD("}")
 		}
 	}
@@ -341,7 +361,7 @@ func toPreprocessorName(name string) string {
 	return r
 }
 
-func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorResponse_File, error) {
+func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorResponse_File, error) {
 	var pkgs []string
 	if file.Package != nil {
 		pkgs = strings.Split(*file.Package, ".")
@@ -358,6 +378,18 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 	cpp.Top.P("#include <boost/json.hpp>")
 	cpp.Top.P("")
 	for _, dep := range file.Dependency {
+		// ファイルが存在してない可能性もあるのでチェックする
+		exists := false
+		for _, f := range files {
+			if dep == *f.Name {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			continue
+		}
+
 		// 拡張子を取り除いて .json.h を付ける
 		fileName := dep
 		fileName = fileName[:len(fileName)-len(filepath.Ext(fileName))]
@@ -401,6 +433,7 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 			return nil, err
 		}
 	}
+
 	for _, desc := range file.MessageType {
 		if err := genDescriptor(desc, file.Package, nil, &cpp); err != nil {
 			return nil, err
@@ -423,7 +456,7 @@ func genFile(file *descriptorpb.FileDescriptorProto) (*pluginpb.CodeGeneratorRes
 func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	resp := &pluginpb.CodeGeneratorResponse{}
 	for _, file := range req.ProtoFile {
-		respFile, err := genFile(file)
+		respFile, err := genFile(file, req.ProtoFile)
 		if err != nil {
 			return nil, err
 		}

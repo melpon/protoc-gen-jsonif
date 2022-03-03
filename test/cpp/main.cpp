@@ -11,6 +11,8 @@
 #include "importing.json.h"
 #include "bytes.json.h"
 #include "jsonfield.json.h"
+#include "optimistic.json.h"
+#include "discard_if_default.json.h"
 
 template<class T>
 T identify(T v) {
@@ -162,6 +164,31 @@ void test_jsonfield() {
   assert(a.field == 10);
 }
 
+void test_optimistic() {
+  auto str = R"({"b":"hoge"})";
+  auto r = jsonif::from_json<optimistic::Test>(str);
+  assert(r.a == "");
+  assert(r.b == "hoge");
+  r = identify(r);
+  assert(r.a == "");
+  assert(r.b == "hoge");
+}
+
+void test_discard_if_default() {
+  discard_if_default::Test a;
+  auto str = jsonif::to_json(a);
+  assert(str == R"({"a":""})");
+
+  a.b = "hoge";
+  str = jsonif::to_json(a);
+  assert(str == R"({"a":"","b":"hoge"})");
+
+  a.b = "";
+  a.c.a = 10;
+  str = jsonif::to_json(a);
+  assert(str == R"({"a":"","c":{"a":10}})");
+}
+
 int main() {
   test_empty();
   test_message();
@@ -172,6 +199,8 @@ int main() {
   test_importing();
   test_bytes();
   test_jsonfield();
+  test_optimistic();
+  test_discard_if_default();
 
   std::cout << "C++ Test passed" << std::endl;
 }

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+import "extensions.proto";
+
+package discard_if_default;
+
+message Test2 {
+    int32 a = 1;
+}
+
+message Test {
+    option (json_message_discard_if_default) = true;
+    string a = 1 [(json_discard_if_default) = false];
+    string b = 2;
+    Test2 c = 3;
+}
