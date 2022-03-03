@@ -11,6 +11,11 @@
 
 ## develop
 
+## 0.4.1 (2022-03-04)
+
+- [FIX] リリースパッケージの proto ディレクトリの配置が間違ってたのを修正
+    - @melpon
+
 ## 0.4.0 (2022-03-04)
 
 - [ADD] protoc-gen-jsonif-cpp に optimistic と discard_if_default カスタムオプションを追加

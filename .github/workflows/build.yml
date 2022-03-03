@@ -44,10 +44,7 @@ jobs:
           GOOS: linux
           GOARCH: amd64
       - name: Copy .proto file
-        run: |
-          DIR=protoc-gen-jsonif/proto
-          mkdir -p $DIR
-          cp -r proto/ protoc-gen-jsonif/proto/
+        run: cp -r proto/ protoc-gen-jsonif/proto/
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
