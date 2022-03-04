@@ -159,7 +159,7 @@ void test_jsonfield() {
   jsonfield::Test a;
   a.field = 10;
   auto str = jsonif::to_json(a);
-  assert(str == R"({"test":10})");
+  assert(str == R"({"test":10,"hoge_field":0})");
   a = identify(a);
   assert(a.field == 10);
 }

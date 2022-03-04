@@ -217,8 +217,8 @@ func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descr
 }
 
 func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
-	descOptimistic := proto.HasExtension(desc.Options, generated.E_JsonMessageOptimistic) && proto.GetExtension(desc.Options, generated.E_JsonMessageOptimistic).(bool)
-	descDiscard := proto.HasExtension(desc.Options, generated.E_JsonMessageDiscardIfDefault) && proto.GetExtension(desc.Options, generated.E_JsonMessageDiscardIfDefault).(bool)
+	descOptimistic := proto.HasExtension(desc.Options, generated.E_JsonifMessageOptimistic) && proto.GetExtension(desc.Options, generated.E_JsonifMessageOptimistic).(bool)
+	descDiscard := proto.HasExtension(desc.Options, generated.E_JsonifMessageDiscardIfDefault) && proto.GetExtension(desc.Options, generated.E_JsonifMessageDiscardIfDefault).(bool)
 
 	cpp.Typedefs.PI("struct %s {", *desc.Name)
 
@@ -287,8 +287,8 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		fieldName := internal.ToSnakeCase(*field.Name)
 		fieldKey := internal.GetJsonName(field, fieldName)
 		discard := descDiscard
-		if proto.HasExtension(field.Options, generated.E_JsonDiscardIfDefault) {
-			discard = proto.GetExtension(field.Options, generated.E_JsonDiscardIfDefault).(bool)
+		if proto.HasExtension(field.Options, generated.E_JsonifDiscardIfDefault) {
+			discard = proto.GetExtension(field.Options, generated.E_JsonifDiscardIfDefault).(bool)
 		}
 
 		if discard {
@@ -316,8 +316,8 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		fieldName := internal.ToSnakeCase(*field.Name)
 		fieldKey := internal.GetJsonName(field, fieldName)
 		optimistic := descOptimistic
-		if proto.HasExtension(field.Options, generated.E_JsonOptimistic) {
-			optimistic = proto.GetExtension(field.Options, generated.E_JsonOptimistic).(bool)
+		if proto.HasExtension(field.Options, generated.E_JsonifOptimistic) {
+			optimistic = proto.GetExtension(field.Options, generated.E_JsonifOptimistic).(bool)
 		}
 		if field.OneofIndex != nil || optimistic {
 			cpp.TagInvokes.PI("if (jv.as_object().find(\"%s\") != jv.as_object().end()) {", fieldKey)

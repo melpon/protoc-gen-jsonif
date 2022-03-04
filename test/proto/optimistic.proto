@@ -5,7 +5,7 @@ import "extensions.proto";
 package optimistic;
 
 message Test {
-    option (json_message_optimistic) = true;
+    option (jsonif_message_optimistic) = true;
     string a = 1;
-    string b = 2 [(json_optimistic) = false];
+    string b = 2 [(jsonif_optimistic) = false];
 }

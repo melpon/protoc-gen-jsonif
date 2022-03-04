@@ -9,8 +9,8 @@ message Test2 {
 }
 
 message Test {
-    option (json_message_discard_if_default) = true;
-    string a = 1 [(json_discard_if_default) = false];
+    option (jsonif_message_discard_if_default) = true;
+    string a = 1 [(jsonif_discard_if_default) = false];
     string b = 2;
     Test2 c = 3;
 }

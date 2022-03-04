@@ -2,6 +2,10 @@ syntax = "proto3";
 
 package jsonfield;
 
+import "extensions.proto";
+
 message Test {
-    int32 field = 1 [json_name = "test"];
+    int32 field = 1 [(jsonif_name) = "test"];
+    // スネークケースがキャメルケースになってないか確認する用
+    int32 hoge_field = 2;
 }
