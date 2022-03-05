@@ -13,6 +13,7 @@
 #include "jsonfield.json.h"
 #include "optimistic.json.h"
 #include "discard_if_default.json.h"
+#include "no_serializer.json.h"
 
 template<class T>
 T identify(T v) {
@@ -189,6 +190,31 @@ void test_discard_if_default() {
   assert(str == R"({"a":"","c":{"a":10}})");
 }
 
+namespace no_serializer {
+
+static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ::no_serializer::Test& v) {
+  boost::json::object obj;
+  obj["b"] = boost::json::value_from(v.a);
+  jv = std::move(obj);
+}
+
+static ::no_serializer::Test tag_invoke(const boost::json::value_to_tag<::no_serializer::Test>&, const boost::json::value& jv) {
+  ::no_serializer::Test v;
+  v.a = boost::json::value_to<std::string>(jv.at("b"));
+  return v;
+}
+
+}
+
+void test_no_serializer() {
+  no_serializer::Test a;
+  a.a = "hoge";
+  auto str = jsonif::to_json(a);
+  assert(str == R"({"b":"hoge"})");
+  a = identify(a);
+  assert(a.a == "hoge");
+}
+
 int main() {
   test_empty();
   test_message();
@@ -201,6 +227,7 @@ int main() {
   test_jsonfield();
   test_optimistic();
   test_discard_if_default();
+  test_no_serializer();
 
   std::cout << "C++ Test passed" << std::endl;
 }

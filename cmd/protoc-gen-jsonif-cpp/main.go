@@ -219,6 +219,8 @@ func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descr
 func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
 	descOptimistic := proto.HasExtension(desc.Options, generated.E_JsonifMessageOptimistic) && proto.GetExtension(desc.Options, generated.E_JsonifMessageOptimistic).(bool)
 	descDiscard := proto.HasExtension(desc.Options, generated.E_JsonifMessageDiscardIfDefault) && proto.GetExtension(desc.Options, generated.E_JsonifMessageDiscardIfDefault).(bool)
+	noSerializer := proto.HasExtension(desc.Options, generated.E_JsonifNoSerializer) && proto.GetExtension(desc.Options, generated.E_JsonifNoSerializer).(bool)
+	noDeserializer := proto.HasExtension(desc.Options, generated.E_JsonifNoDeserializer) && proto.GetExtension(desc.Options, generated.E_JsonifNoDeserializer).(bool)
 
 	cpp.Typedefs.PI("struct %s {", *desc.Name)
 
@@ -281,6 +283,9 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		return err
 	}
 	cpp.TagInvokes.P("// %s", qName)
+	if noSerializer {
+		cpp.TagInvokes.P("#if 0")
+	}
 	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
 	cpp.TagInvokes.P("boost::json::object obj;")
 	for _, field := range desc.Field {
@@ -305,7 +310,13 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	}
 	cpp.TagInvokes.P("jv = std::move(obj);")
 	cpp.TagInvokes.PD("}")
+	if noSerializer {
+		cpp.TagInvokes.P("#endif")
+	}
 	cpp.TagInvokes.P("")
+	if noDeserializer {
+		cpp.TagInvokes.P("#if 0")
+	}
 	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("%s v;", qName)
 	for _, field := range desc.Field {
@@ -337,6 +348,9 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	}
 	cpp.TagInvokes.P("return v;")
 	cpp.TagInvokes.PD("}")
+	if noDeserializer {
+		cpp.TagInvokes.P("#endif")
+	}
 	cpp.TagInvokes.P("")
 
 	return nil

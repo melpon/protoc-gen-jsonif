@@ -11,6 +11,11 @@
 
 ## develop
 
+## 0.5.0 (2022-03-05)
+
+- [ADD] protoc-gen-jsonif-cpp に no_serializer と no_deserializer カスタムオプションを追加
+    - @melpon
+
 ## 0.4.2 (2022-03-04)
 
 - [FIX] JSON のキー名が camelCase になってしまっていたのを修正

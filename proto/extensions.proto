@@ -9,6 +9,10 @@ extend google.protobuf.MessageOptions {
   optional bool jsonif_message_optimistic = 5012;
   // JSON に変換する際に、デフォルト値のままだったらフィールドを出力しない
   optional bool jsonif_message_discard_if_default = 5013;
+  // JSON へのシリアライズ処理を出力しない
+  optional bool jsonif_no_serializer = 5014;
+  // JSON からのデシリアライズ処理を出力しない
+  optional bool jsonif_no_deserializer = 5015;
 }
 // フィールドに対しても同じ設定ができる
 extend google.protobuf.FieldOptions {

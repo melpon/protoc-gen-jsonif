@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+import "extensions.proto";
+
+package no_serializer;
+
+message Test {
+    option (jsonif_no_serializer) = true;
+    option (jsonif_no_deserializer) = true;
+    string a = 1;
+}

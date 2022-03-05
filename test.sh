@@ -30,7 +30,8 @@ pushd test/proto
     repeated.proto \
     jsonfield.proto \
     optimistic.proto \
-    discard_if_default.proto
+    discard_if_default.proto \
+    no_serializer.proto
   $INSTALL_DIR/protoc/bin/protoc.exe \
     --plugin=protoc-gen-jsonif-unity=$BUILD_DIR/test/protoc-gen-jsonif-unity.exe \
     --jsonif-unity_out=../unity/JsonifUnityTest/Assets/Generated \
