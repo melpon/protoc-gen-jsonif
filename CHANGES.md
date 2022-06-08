@@ -11,6 +11,9 @@
 
 ## develop
 
+- [ADD] Darwin ARM64 向けバイナリを追加
+    - @melpon
+
 ## 0.5.0 (2022-03-05)
 
 - [ADD] protoc-gen-jsonif-cpp に no_serializer と no_deserializer カスタムオプションを追加

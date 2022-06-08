@@ -34,6 +34,15 @@ jobs:
         env:
           GOOS: darwin
           GOARCH: amd64
+      - name: Build for Darwin arm64
+        run: |
+          DIR=protoc-gen-jsonif/darwin/arm64
+          mkdir -p $DIR
+          go build -o $DIR/protoc-gen-jsonif-cpp cmd/protoc-gen-jsonif-cpp/main.go
+          go build -o $DIR/protoc-gen-jsonif-unity cmd/protoc-gen-jsonif-unity/main.go
+        env:
+          GOOS: darwin
+          GOARCH: arm64
       - name: Build for Linux amd64
         run: |
           DIR=protoc-gen-jsonif/linux/amd64
