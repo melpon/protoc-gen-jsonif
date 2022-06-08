@@ -11,6 +11,8 @@
 
 ## develop
 
+## 0.6.0 (2022-06-08)
+
 - [ADD] Darwin ARM64 向けバイナリを追加
     - @melpon
 
