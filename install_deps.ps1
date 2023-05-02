@@ -7,7 +7,7 @@ mkdir $BUILD_DIR -Force
 mkdir $INSTALL_DIR -Force
 
 # protoc
-$PROTOC_VERSION = "3.17.3"
+$PROTOC_VERSION = "22.3"
 
 $_URL = "https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-win64.zip"
 $_FILE = "protoc-$PROTOC_VERSION-win64.zip"
@@ -31,7 +31,7 @@ Push-Location $BUILD_DIR
 Pop-Location
 
 # Boost
-$BOOST_VERSION = "1.76.0"
+$BOOST_VERSION = "1.82.0"
 
 $_BOOST_UNDERSCORE_VERSION = $BOOST_VERSION.Replace(".", "_")
 $_URL = "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_${_BOOST_UNDERSCORE_VERSION}.zip"
