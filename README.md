@@ -12,6 +12,7 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 
 - [x] C++ 用コードの出力 (Boost.JSON 利用)
 - [x] Unity 用コードの出力
+- [x] C 用コードの出力（コンパイルには C++ 用コードが必要）
 - [x] message, enum 対応
 - [x] repeated 対応
 - [x] oneof 対応 
@@ -22,7 +23,8 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 
 ## 対応するかもしれないもの
 
-- C++, Unity 以外の言語への対応
+- Flutter への対応
+- C++, Unity, C 以外の言語への対応
 - protoc-gen-json-unity の bytes 型の対応（いい方法求む）
 - オブジェクトの大小の比較
 
