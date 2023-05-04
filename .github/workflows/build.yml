@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
-          go-version: ^1.16
+          go-version: ^1.20
       - name: Build for Windows amd64
         run: |
           DIR=protoc-gen-jsonif/windows/amd64
