@@ -191,7 +191,8 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		return err
 	}
 
-	cpp.Typedefs.PI("struct %s {", qName)
+	cpp.Typedefs.P("// %s", *desc.Name)
+	cpp.Typedefs.PI("typedef struct {")
 
 	for _, field := range desc.Field {
 		typeName, isRepeated, needLen, err := toTypeName(field)
@@ -245,7 +246,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	// 	return err
 	// }
 
-	cpp.Typedefs.PD("};")
+	cpp.Typedefs.PD("} %s;", qName)
 	cpp.Typedefs.P("")
 
 	// qName, err := toQualifiedName(*desc.Name, pkg, parents)
@@ -369,6 +370,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			}
 		}
 	}
+	cpp.Typedefs.P("")
 
 	// oneof clear_<case> declarations
 	for _, oneof := range desc.OneofDecl {
@@ -819,6 +821,7 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 	cpp.HTop.P("#ifndef AUTO_GENERATED_PROTOC_GEN_JSONIF_C_%s", toPreprocessorName(*file.Name))
 	cpp.HTop.P("#define AUTO_GENERATED_PROTOC_GEN_JSONIF_C_%s", toPreprocessorName(*file.Name))
 	cpp.HTop.P("")
+	cpp.HTop.P("#include <stdbool.h>")
 	cpp.HTop.P("#include <stddef.h>")
 	cpp.HTop.P("#include <stdint.h>")
 	cpp.HTop.P("")
