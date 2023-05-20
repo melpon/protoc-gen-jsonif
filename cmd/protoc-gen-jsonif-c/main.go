@@ -13,16 +13,19 @@ import (
 )
 
 type cFile struct {
-	HTop      internal.Formatter
-	HBottom   internal.Formatter
-	Enums     internal.Formatter
-	Typedefs  internal.Formatter
-	CTop      internal.Formatter
-	CBottom   internal.Formatter
-	Impl      internal.Formatter
-	HppTop    internal.Formatter
-	HppBottom internal.Formatter
-	HppDefs   internal.Formatter
+	HTop        internal.Formatter
+	HBottom     internal.Formatter
+	Enums       internal.Formatter
+	Typedefs    internal.Formatter
+	CTop        internal.Formatter
+	CBottom     internal.Formatter
+	CImplTop    internal.Formatter
+	CImpl       internal.Formatter
+	CImplBottom internal.Formatter
+	CppImpl     internal.Formatter
+	HppTop      internal.Formatter
+	HppBottom   internal.Formatter
+	HppDefs     internal.Formatter
 }
 
 func (cpp *cFile) HeaderString() string {
@@ -32,7 +35,7 @@ func (cpp *cFile) HppString() string {
 	return cpp.HppTop.String() + cpp.HppDefs.String() + cpp.HppBottom.String()
 }
 func (cpp *cFile) CppString() string {
-	return cpp.CTop.String() + cpp.Impl.String() + cpp.CBottom.String()
+	return cpp.CTop.String() + cpp.CppImpl.String() + cpp.CImplTop.String() + cpp.CImpl.String() + cpp.CImplBottom.String() + cpp.CBottom.String()
 }
 
 func toQualifiedName(name string, pkg *string, parents []*descriptorpb.DescriptorProto) (string, error) {
@@ -384,213 +387,209 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	cpp.HppDefs.P("void %s_from_cpp(const %s& u, %s* v);", qName, qCppName, qName)
 
 	// to_cpp
-	cpp.Impl.PI("%s %s_to_cpp(const %s* v) {", qCppName, qName, qName)
-	cpp.Impl.P("%s u;", qCppName)
+	cpp.CppImpl.PI("%s %s_to_cpp(const %s* v) {", qCppName, qName, qName)
+	cpp.CppImpl.P("%s u;", qCppName)
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
-		// TODO
 		isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 		if !isRepeated {
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.P("if (v->%s_len != 0) u.%s = std::string(v->%s, v->%s_len);", fieldName, fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("if (v->%s_len != 0) u.%s = std::string(v->%s, v->%s_len);", fieldName, fieldName, fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.P("if (v->%s_len != 0) u.%s = std::string((const char*)v->%s, v->%s_len);", fieldName, fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("if (v->%s_len != 0) u.%s = std::string((const char*)v->%s, v->%s_len);", fieldName, fieldName, fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("u.%s = %s_to_cpp(&v->%s);", fieldName, typeName, fieldName)
+				cpp.CppImpl.P("u.%s = %s_to_cpp(&v->%s);", fieldName, typeName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
-				cpp.Impl.P("u.%s = (decltype(u.%s))v->%s;", fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("u.%s = (decltype(u.%s))v->%s;", fieldName, fieldName, fieldName)
 			} else {
-				cpp.Impl.P("u.%s = v->%s;", fieldName, fieldName)
+				cpp.CppImpl.P("u.%s = v->%s;", fieldName, fieldName)
 			}
 		}
 		if isRepeated {
-			cpp.Impl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
+			cpp.CppImpl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.P("if (v->%s_lens[i] != 0) u.%s.push_back(std::string(v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("if (v->%s_lens[i] != 0) u.%s.push_back(std::string(v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.P("if (v->%s_lens[i] != 0) u.%s.push_back(std::string((const char*)v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("if (v->%s_lens[i] != 0) u.%s.push_back(std::string((const char*)v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("u.%s.push_back(%s_to_cpp(&v->%s[i]));", fieldName, typeName, fieldName)
+				cpp.CppImpl.P("u.%s.push_back(%s_to_cpp(&v->%s[i]));", fieldName, typeName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
-				cpp.Impl.P("u.%s.push_back((decltype(u.%s[0]))v->%s[i]);", fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("u.%s.push_back((decltype(u.%s[0]))v->%s[i]);", fieldName, fieldName, fieldName)
 			} else {
-				cpp.Impl.P("u.%s.push_back(v->%s[i]);", fieldName, fieldName)
+				cpp.CppImpl.P("u.%s.push_back(v->%s[i]);", fieldName, fieldName)
 			}
-			cpp.Impl.PD("}")
+			cpp.CppImpl.PD("}")
 		}
 	}
-	cpp.Impl.P("return u;")
-	cpp.Impl.PD("}")
+	cpp.CppImpl.P("return u;")
+	cpp.CppImpl.PD("}")
 
 	// from_cpp
-	cpp.Impl.PI("void %s_from_cpp(const %s& u, %s* v) {", qName, qCppName, qName)
-	cpp.Impl.P("%s_destroy(v);", qName)
-	cpp.Impl.P("%s_init(v);", qName)
+	cpp.CppImpl.PI("void %s_from_cpp(const %s& u, %s* v) {", qName, qCppName, qName)
+	cpp.CppImpl.P("%s_destroy(v);", qName)
+	cpp.CppImpl.P("%s_init(v);", qName)
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
-		// TODO
 		isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 		if !isRepeated {
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.P("if (!u.%s.empty()) v->%s = strdup(u.%s.c_str());", fieldName, fieldName, fieldName)
-				cpp.Impl.P("v->%s_len = (int)u.%s.size();", fieldName, fieldName)
+				cpp.CppImpl.P("if (!u.%s.empty()) v->%s = strdup(u.%s.c_str());", fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("v->%s_len = (int)u.%s.size();", fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.PI("if (!u.%s.empty()) {", fieldName)
-				cpp.Impl.P("v->%s = (uint8_t*)malloc(sizeof(uint8_t) * u.%s.size());", fieldName, fieldName)
-				cpp.Impl.P("memcpy(v->%s, u.%s.data(), u.%s.size());", fieldName, fieldName, fieldName)
-				cpp.Impl.PD("}")
-				cpp.Impl.P("v->%s_len = (int)u.%s.size();", fieldName, fieldName)
+				cpp.CppImpl.PI("if (!u.%s.empty()) {", fieldName)
+				cpp.CppImpl.P("v->%s = (uint8_t*)malloc(sizeof(uint8_t) * u.%s.size());", fieldName, fieldName)
+				cpp.CppImpl.P("memcpy(v->%s, u.%s.data(), u.%s.size());", fieldName, fieldName, fieldName)
+				cpp.CppImpl.PD("}")
+				cpp.CppImpl.P("v->%s_len = (int)u.%s.size();", fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("%s_from_cpp(u.%s, &v->%s);", typeName, fieldName, fieldName)
+				cpp.CppImpl.P("%s_from_cpp(u.%s, &v->%s);", typeName, fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
-				cpp.Impl.P("v->%s = (int)u.%s;", fieldName, fieldName)
+				cpp.CppImpl.P("v->%s = (int)u.%s;", fieldName, fieldName)
 			} else {
-				cpp.Impl.P("v->%s = u.%s;", fieldName, fieldName)
+				cpp.CppImpl.P("v->%s = u.%s;", fieldName, fieldName)
 			}
 		}
 		if isRepeated {
-			cpp.Impl.P("v->%s_len = (int)u.%s.size();", fieldName, fieldName)
-			cpp.Impl.P("v->%s = v->%s_len == 0 ? nullptr : (decltype(v->%s))malloc(sizeof(v->%s[0]) * u.%s.size());",
+			cpp.CppImpl.P("v->%s_len = (int)u.%s.size();", fieldName, fieldName)
+			cpp.CppImpl.P("v->%s = v->%s_len == 0 ? nullptr : (decltype(v->%s))malloc(sizeof(v->%s[0]) * u.%s.size());",
 				fieldName, fieldName, fieldName, fieldName, fieldName)
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING ||
 				*field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.P("v->%s_lens = v->%s_len == 0 ? nullptr : (int*)malloc(sizeof(int) * u.%s.size());",
+				cpp.CppImpl.P("v->%s_lens = v->%s_len == 0 ? nullptr : (int*)malloc(sizeof(int) * u.%s.size());",
 					fieldName, fieldName, fieldName)
 			}
 
-			cpp.Impl.PI("for (int i = 0; i < (int)u.%s.size(); i++) {", fieldName)
+			cpp.CppImpl.PI("for (int i = 0; i < (int)u.%s.size(); i++) {", fieldName)
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.P("if (!u.%s[i].empty()) v->%s[i] = strdup(u.%s[i].c_str());", fieldName, fieldName, fieldName)
-				cpp.Impl.P("v->%s_lens[i] = (int)u.%s[i].size();", fieldName, fieldName)
+				cpp.CppImpl.P("if (!u.%s[i].empty()) v->%s[i] = strdup(u.%s[i].c_str());", fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("v->%s_lens[i] = (int)u.%s[i].size();", fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.PI("if (!u.%s[i].empty()) {", fieldName)
-				cpp.Impl.P("v->%s[i] = (uint8_t*)malloc(sizeof(uint8_t) * u.%s[i].size());", fieldName, fieldName)
-				cpp.Impl.P("memcpy(v->%s[i],  &u.%s[i], u.%s[i].size());", fieldName, fieldName, fieldName)
-				cpp.Impl.PD("}")
-				cpp.Impl.P("v->%s_lens[i] = (int)u.%s[i].size();", fieldName, fieldName)
+				cpp.CppImpl.PI("if (!u.%s[i].empty()) {", fieldName)
+				cpp.CppImpl.P("v->%s[i] = (uint8_t*)malloc(sizeof(uint8_t) * u.%s[i].size());", fieldName, fieldName)
+				cpp.CppImpl.P("memcpy(v->%s[i],  &u.%s[i], u.%s[i].size());", fieldName, fieldName, fieldName)
+				cpp.CppImpl.PD("}")
+				cpp.CppImpl.P("v->%s_lens[i] = (int)u.%s[i].size();", fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("%s_init(&v->%s[i]);", typeName, fieldName)
-				cpp.Impl.P("%s_from_cpp(u.%s[i], &v->%s[i]);", typeName, fieldName, fieldName)
+				cpp.CppImpl.P("%s_init(&v->%s[i]);", typeName, fieldName)
+				cpp.CppImpl.P("%s_from_cpp(u.%s[i], &v->%s[i]);", typeName, fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
-				cpp.Impl.P("v->%s[i] = (int)u.%s[i];", fieldName, fieldName)
+				cpp.CppImpl.P("v->%s[i] = (int)u.%s[i];", fieldName, fieldName)
 			} else {
-				cpp.Impl.P("v->%s[i] = u.%s[i];", fieldName, fieldName)
+				cpp.CppImpl.P("v->%s[i] = u.%s[i];", fieldName, fieldName)
 			}
-			cpp.Impl.PD("}")
+			cpp.CppImpl.PD("}")
 		}
 	}
-	cpp.Impl.PD("}")
+	cpp.CppImpl.PD("}")
 
 	// init
-	cpp.Impl.PI("void %s_init(%s* v) {", qName, qName)
-	cpp.Impl.P("memset(v, 0, sizeof(%s));", qName)
-	cpp.Impl.PD("}")
+	cpp.CImpl.PI("void %s_init(%s* v) {", qName, qName)
+	cpp.CImpl.P("memset(v, 0, sizeof(%s));", qName)
+	cpp.CImpl.PD("}")
 
 	// destroy
-	cpp.Impl.PI("void %s_destroy(%s* v) {", qName, qName)
+	cpp.CImpl.PI("void %s_destroy(%s* v) {", qName, qName)
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
-		// TODO
 		isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 		if !isRepeated {
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-				cpp.Impl.P("v->%s = nullptr;", fieldName)
-				cpp.Impl.P("v->%s_len = 0;", fieldName)
+				cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s = nullptr;", fieldName)
+				cpp.CImpl.P("v->%s_len = 0;", fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-				cpp.Impl.P("v->%s = nullptr;", fieldName)
-				cpp.Impl.P("v->%s_len = 0;", fieldName)
+				cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s = nullptr;", fieldName)
+				cpp.CImpl.P("v->%s_len = 0;", fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("%s_destroy(&v->%s);", typeName, fieldName)
+				cpp.CImpl.P("%s_destroy(&v->%s);", typeName, fieldName)
 			} else {
-				cpp.Impl.P("memset(&v->%s, 0, sizeof(v->%s));", fieldName, fieldName)
+				cpp.CImpl.P("memset(&v->%s, 0, sizeof(v->%s));", fieldName, fieldName)
 			}
 		}
 		if isRepeated {
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING ||
 				*field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
-				cpp.Impl.P("if (v->%s[i]) free(v->%s[i]);", fieldName, fieldName)
-				cpp.Impl.P("v->%s[i] = nullptr;", fieldName)
-				cpp.Impl.P("v->%s_lens[i] = 0;", fieldName)
-				cpp.Impl.PD("}")
-				cpp.Impl.P("if (v->%s_lens) free(v->%s_lens);", fieldName, fieldName)
+				cpp.CImpl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
+				cpp.CImpl.P("if (v->%s[i]) free(v->%s[i]);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s[i] = nullptr;", fieldName)
+				cpp.CImpl.P("v->%s_lens[i] = 0;", fieldName)
+				cpp.CImpl.PD("}")
+				cpp.CImpl.P("if (v->%s_lens) free(v->%s_lens);", fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
 					return err
 				}
-				cpp.Impl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
-				cpp.Impl.P("%s_destroy(&v->%s[i]);", typeName, fieldName)
-				cpp.Impl.PD("}")
+				cpp.CImpl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
+				cpp.CImpl.P("%s_destroy(&v->%s[i]);", typeName, fieldName)
+				cpp.CImpl.PD("}")
 			}
-			cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-			cpp.Impl.P("v->%s_len = 0;", fieldName)
+			cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+			cpp.CImpl.P("v->%s_len = 0;", fieldName)
 		}
 	}
-	cpp.Impl.PD("}")
+	cpp.CImpl.PD("}")
 
 	// copy
-	cpp.Impl.PI("void %s_copy(const %s* a, %s* b) {", qName, qName, qName)
-	cpp.Impl.P("if (a == b) return;")
-	cpp.Impl.P("int size = %s_to_json_size(a);", qName)
-	cpp.Impl.P("std::string json(size - 1, 0);")
-	cpp.Impl.P("%s_to_json(a, &json[0]);", qName)
-	cpp.Impl.P("%s_from_json(json.c_str(), b);", qName)
-	cpp.Impl.PD("}")
+	cpp.CImpl.PI("void %s_copy(const %s* a, %s* b) {", qName, qName, qName)
+	cpp.CImpl.P("if (a == b) return;")
+	cpp.CImpl.P("int size = %s_to_json_size(a);", qName)
+	cpp.CImpl.P("std::string json(size - 1, 0);")
+	cpp.CImpl.P("%s_to_json(a, &json[0]);", qName)
+	cpp.CImpl.P("%s_from_json(json.c_str(), b);", qName)
+	cpp.CImpl.PD("}")
 
 	// is_equal
-	cpp.Impl.PI("bool %s_is_equal(const %s* a, const %s* b) {", qName, qName, qName)
-	cpp.Impl.P("if (a == b) return true;")
-	cpp.Impl.P("%s ua = %s_to_cpp(a);", qCppName, qName)
-	cpp.Impl.P("%s ub = %s_to_cpp(b);", qCppName, qName)
-	cpp.Impl.P("return ua == ub;")
-	cpp.Impl.PD("}")
+	cpp.CImpl.PI("bool %s_is_equal(const %s* a, const %s* b) {", qName, qName, qName)
+	cpp.CImpl.P("if (a == b) return true;")
+	cpp.CImpl.P("%s ua = %s_to_cpp(a);", qCppName, qName)
+	cpp.CImpl.P("%s ub = %s_to_cpp(b);", qCppName, qName)
+	cpp.CImpl.P("return ua == ub;")
+	cpp.CImpl.PD("}")
 
 	// to_json_size
-	cpp.Impl.PI("int %s_to_json_size(const %s* v) {", qName, qName)
-	cpp.Impl.P("%s u = %s_to_cpp(v);", qCppName, qName)
-	cpp.Impl.P("return jsonif::to_json(u).size() + 1;")
-	cpp.Impl.PD("}")
+	cpp.CImpl.PI("int %s_to_json_size(const %s* v) {", qName, qName)
+	cpp.CImpl.P("%s u = %s_to_cpp(v);", qCppName, qName)
+	cpp.CImpl.P("return jsonif::to_json(u).size() + 1;")
+	cpp.CImpl.PD("}")
 
 	// to_json
-	cpp.Impl.PI("void %s_to_json(const %s* v, char* json) {", qName, qName)
-	cpp.Impl.P("%s u = %s_to_cpp(v);", qCppName, qName)
-	cpp.Impl.P("std::string str = jsonif::to_json(u);")
-	cpp.Impl.P("memcpy(json, str.c_str(), str.size() + 1);")
-	cpp.Impl.PD("}")
+	cpp.CImpl.PI("void %s_to_json(const %s* v, char* json) {", qName, qName)
+	cpp.CImpl.P("%s u = %s_to_cpp(v);", qCppName, qName)
+	cpp.CImpl.P("std::string str = jsonif::to_json(u);")
+	cpp.CImpl.P("memcpy(json, str.c_str(), str.size() + 1);")
+	cpp.CImpl.PD("}")
 
 	// from_json
-	cpp.Impl.PI("void %s_from_json(const char* json, %s* v) {", qName, qName)
-	cpp.Impl.P("%s u = jsonif::from_json<%s>(json);", qCppName, qCppName)
-	cpp.Impl.P("%s_from_cpp(u, v);", qName)
-	cpp.Impl.PD("}")
+	cpp.CImpl.PI("void %s_from_json(const char* json, %s* v) {", qName, qName)
+	cpp.CImpl.P("%s u = jsonif::from_json<%s>(json);", qCppName, qCppName)
+	cpp.CImpl.P("%s_from_cpp(u, v);", qName)
+	cpp.CImpl.PD("}")
 
 	// set_<field>
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
-		// TODO
 		isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 		if !isRepeated {
 			genCase := func() error {
@@ -601,87 +600,87 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 					if err != nil {
 						return err
 					}
-					cpp.Impl.P("%s_clear_%s(v);", qName, oneofFieldName)
-					cpp.Impl.P("v->%s = %s_k%s;", oneofFieldName, oneofQName, internal.ToUpperCamel(*field.Name))
+					cpp.CImpl.P("%s_clear_%s(v);", qName, oneofFieldName)
+					cpp.CImpl.P("v->%s = %s_k%s;", oneofFieldName, oneofQName, internal.ToUpperCamel(*field.Name))
 				}
 				return nil
 			}
 
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.PI("void %s_set_%s(%s* v, const char* s) {", qName, fieldName, qName)
+				cpp.CImpl.PI("void %s_set_%s(%s* v, const char* s) {", qName, fieldName, qName)
 				err := genCase()
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-				cpp.Impl.P("v->%s_len = s == nullptr ? 0 : strlen(s);", fieldName)
-				cpp.Impl.P("v->%s = v->%s_len == 0 ? nullptr : strdup(s);", fieldName, fieldName)
-				cpp.Impl.PD("}")
+				cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s_len = s == nullptr ? 0 : strlen(s);", fieldName)
+				cpp.CImpl.P("v->%s = v->%s_len == 0 ? nullptr : strdup(s);", fieldName, fieldName)
+				cpp.CImpl.PD("}")
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.PI("void %s_set_%s(%s* v, const uint8_t* buf, int size) {", qName, fieldName, qName)
+				cpp.CImpl.PI("void %s_set_%s(%s* v, const uint8_t* buf, int size) {", qName, fieldName, qName)
 				err := genCase()
 				if err != nil {
 					return err
 				}
-				cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-				cpp.Impl.P("v->%s = nullptr;", fieldName)
-				cpp.Impl.P("v->%s_len = buf == nullptr ? 0 : size;", fieldName)
-				cpp.Impl.PI("if (v->%s_len != 0) {", fieldName)
-				cpp.Impl.P("v->%s = (uint8_t*)malloc(size);", fieldName)
-				cpp.Impl.P("memcpy(v->%s, buf, size);", fieldName)
-				cpp.Impl.PD("}")
-				cpp.Impl.PD("}")
+				cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s = nullptr;", fieldName)
+				cpp.CImpl.P("v->%s_len = buf == nullptr ? 0 : size;", fieldName)
+				cpp.CImpl.PI("if (v->%s_len != 0) {", fieldName)
+				cpp.CImpl.P("v->%s = (uint8_t*)malloc(size);", fieldName)
+				cpp.CImpl.P("memcpy(v->%s, buf, size);", fieldName)
+				cpp.CImpl.PD("}")
+				cpp.CImpl.PD("}")
 			} else {
 				typeName, _, _, err := toTypeName(field)
 				if err != nil {
 					return err
 				}
 				if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
-					cpp.Impl.PI("void %s_set_%s(%s* v, const %s* m) {", qName, fieldName, qName, typeName)
+					cpp.CImpl.PI("void %s_set_%s(%s* v, const %s* m) {", qName, fieldName, qName, typeName)
 					err := genCase()
 					if err != nil {
 						return err
 					}
-					cpp.Impl.P("%s_copy(m, &v->%s);", typeName, fieldName)
-					cpp.Impl.PD("}")
+					cpp.CImpl.P("%s_copy(m, &v->%s);", typeName, fieldName)
+					cpp.CImpl.PD("}")
 				} else {
-					cpp.Impl.PI("void %s_set_%s(%s* v, %s m) {", qName, fieldName, qName, typeName)
+					cpp.CImpl.PI("void %s_set_%s(%s* v, %s m) {", qName, fieldName, qName, typeName)
 					err := genCase()
 					if err != nil {
 						return err
 					}
-					cpp.Impl.P("v->%s = m;", fieldName)
-					cpp.Impl.PD("}")
+					cpp.CImpl.P("v->%s = m;", fieldName)
+					cpp.CImpl.PD("}")
 				}
 			}
 		}
 		if isRepeated {
-			cpp.Impl.PI("void %s_alloc_%s(%s* v, int num) {", qName, fieldName, qName)
-			cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-			cpp.Impl.P("v->%s = nullptr;", fieldName)
-			cpp.Impl.P("v->%s_len = 0;", fieldName)
-			cpp.Impl.PI("if (num != 0) {")
-			cpp.Impl.P("v->%s = (decltype(v->%s))malloc(sizeof(v->%s[0]) * num);", fieldName, fieldName, fieldName)
-			cpp.Impl.P("memset(v->%s, 0, sizeof(v->%s[0]) * num);", fieldName, fieldName)
-			cpp.Impl.PD("}")
-			cpp.Impl.PD("}")
-			cpp.Impl.P("")
+			cpp.CImpl.PI("void %s_alloc_%s(%s* v, int num) {", qName, fieldName, qName)
+			cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+			cpp.CImpl.P("v->%s = nullptr;", fieldName)
+			cpp.CImpl.P("v->%s_len = 0;", fieldName)
+			cpp.CImpl.PI("if (num != 0) {")
+			cpp.CImpl.P("v->%s = (decltype(v->%s))malloc(sizeof(v->%s[0]) * num);", fieldName, fieldName, fieldName)
+			cpp.CImpl.P("memset(v->%s, 0, sizeof(v->%s[0]) * num);", fieldName, fieldName)
+			cpp.CImpl.PD("}")
+			cpp.CImpl.PD("}")
+			cpp.CImpl.P("")
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.Impl.PI("void %s_set_%s(%s* v, int n, const char* s) {", qName, fieldName, qName)
-				cpp.Impl.P("if (v->%s[n]) free(v->%s[n]);", fieldName, fieldName)
-				cpp.Impl.P("v->%s_lens[n] = s == nullptr ? 0 : strlen(s);", fieldName)
-				cpp.Impl.P("v->%s[n] = v->%s_lens[n] == 0 ? nullptr : strdup(s);", fieldName, fieldName)
-				cpp.Impl.PD("}")
+				cpp.CImpl.PI("void %s_set_%s(%s* v, int n, const char* s) {", qName, fieldName, qName)
+				cpp.CImpl.P("if (v->%s[n]) free(v->%s[n]);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s_lens[n] = s == nullptr ? 0 : strlen(s);", fieldName)
+				cpp.CImpl.P("v->%s[n] = v->%s_lens[n] == 0 ? nullptr : strdup(s);", fieldName, fieldName)
+				cpp.CImpl.PD("}")
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.Impl.PI("void %s_set_%s(%s* v, int n, const uint8_t* buf, int size) {", qName, fieldName, qName)
-				cpp.Impl.P("if (v->%s[n]) free(v->%s[n]);", fieldName, fieldName)
-				cpp.Impl.P("v->%s[n] = nullptr;", fieldName)
-				cpp.Impl.P("v->%s_lens[n] = buf == nullptr ? 0 : size;", fieldName)
-				cpp.Impl.PI("if (v->%s_lens[n] != 0) {", fieldName)
-				cpp.Impl.P("v->%s[n] = (uint8_t*)malloc(size);", fieldName)
-				cpp.Impl.P("memcpy(v->%s[n], buf, size);", fieldName)
-				cpp.Impl.PD("}")
-				cpp.Impl.PD("}")
+				cpp.CImpl.PI("void %s_set_%s(%s* v, int n, const uint8_t* buf, int size) {", qName, fieldName, qName)
+				cpp.CImpl.P("if (v->%s[n]) free(v->%s[n]);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s[n] = nullptr;", fieldName)
+				cpp.CImpl.P("v->%s_lens[n] = buf == nullptr ? 0 : size;", fieldName)
+				cpp.CImpl.PI("if (v->%s_lens[n] != 0) {", fieldName)
+				cpp.CImpl.P("v->%s[n] = (uint8_t*)malloc(size);", fieldName)
+				cpp.CImpl.P("memcpy(v->%s[n], buf, size);", fieldName)
+				cpp.CImpl.PD("}")
+				cpp.CImpl.PD("}")
 			} else {
 				typeName, _, _, err := toTypeName(field)
 				if err != nil {
@@ -689,13 +688,13 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 				}
 				typeName = strings.ReplaceAll(typeName, "*", "")
 				if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
-					cpp.Impl.PI("void %s_set_%s(%s* v, int n, const %s* m) {", qName, fieldName, qName, typeName)
-					cpp.Impl.P("%s_copy(m, &v->%s[n]);", typeName, fieldName)
-					cpp.Impl.PD("}")
+					cpp.CImpl.PI("void %s_set_%s(%s* v, int n, const %s* m) {", qName, fieldName, qName, typeName)
+					cpp.CImpl.P("%s_copy(m, &v->%s[n]);", typeName, fieldName)
+					cpp.CImpl.PD("}")
 				} else {
-					cpp.Impl.PI("void %s_set_%s(%s* v, int n, %s m) {", qName, fieldName, qName, typeName)
-					cpp.Impl.P("v->%s[n] = m;", fieldName)
-					cpp.Impl.PD("}")
+					cpp.CImpl.PI("void %s_set_%s(%s* v, int n, %s m) {", qName, fieldName, qName, typeName)
+					cpp.CImpl.P("v->%s[n] = m;", fieldName)
+					cpp.CImpl.PD("}")
 				}
 			}
 		}
@@ -709,7 +708,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		if err != nil {
 			return err
 		}
-		cpp.Impl.PI("void %s_clear_%s(%s* v) {", qName, fieldName, qName)
+		cpp.CImpl.PI("void %s_clear_%s(%s* v) {", qName, fieldName, qName)
 
 		var fields []*descriptorpb.FieldDescriptorProto
 		for _, field := range desc.Field {
@@ -723,47 +722,47 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
 			if !isRepeated {
 				if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-					cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-					cpp.Impl.P("v->%s = nullptr;", fieldName)
-					cpp.Impl.P("v->%s_len = 0;", fieldName)
+					cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+					cpp.CImpl.P("v->%s = nullptr;", fieldName)
+					cpp.CImpl.P("v->%s_len = 0;", fieldName)
 				} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-					cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-					cpp.Impl.P("v->%s = nullptr;", fieldName)
-					cpp.Impl.P("v->%s_len = 0;", fieldName)
+					cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+					cpp.CImpl.P("v->%s = nullptr;", fieldName)
+					cpp.CImpl.P("v->%s_len = 0;", fieldName)
 				} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 					typeName, err := getMessageTypeName(field)
 					if err != nil {
 						return err
 					}
-					cpp.Impl.P("%s_destroy(&v->%s);", typeName, fieldName)
+					cpp.CImpl.P("%s_destroy(&v->%s);", typeName, fieldName)
 				} else {
-					cpp.Impl.P("memset(&v->%s, 0, sizeof(v->%s));", fieldName, fieldName)
+					cpp.CImpl.P("memset(&v->%s, 0, sizeof(v->%s));", fieldName, fieldName)
 				}
 			}
 			if isRepeated {
 				if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING ||
 					*field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-					cpp.Impl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
-					cpp.Impl.P("if (v->%s[i]) free(v->%s[i]);", fieldName, fieldName)
-					cpp.Impl.P("v->%s[i] = nullptr;", fieldName)
-					cpp.Impl.P("v->%s_lens[i] = 0;", fieldName)
-					cpp.Impl.PD("}")
-					cpp.Impl.P("if (v->%s_lens) free(v->%s_lens);", fieldName, fieldName)
+					cpp.CImpl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
+					cpp.CImpl.P("if (v->%s[i]) free(v->%s[i]);", fieldName, fieldName)
+					cpp.CImpl.P("v->%s[i] = nullptr;", fieldName)
+					cpp.CImpl.P("v->%s_lens[i] = 0;", fieldName)
+					cpp.CImpl.PD("}")
+					cpp.CImpl.P("if (v->%s_lens) free(v->%s_lens);", fieldName, fieldName)
 				} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 					typeName, err := getMessageTypeName(field)
 					if err != nil {
 						return err
 					}
-					cpp.Impl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
-					cpp.Impl.P("%s_destroy(&v->%s[i]);", typeName, fieldName)
-					cpp.Impl.PD("}")
+					cpp.CImpl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
+					cpp.CImpl.P("%s_destroy(&v->%s[i]);", typeName, fieldName)
+					cpp.CImpl.PD("}")
 				}
-				cpp.Impl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
-				cpp.Impl.P("v->%s_len = 0;", fieldName)
+				cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s_len = 0;", fieldName)
 			}
 		}
-		cpp.Impl.P("v->%s = %s_NOT_SET;", fieldName, oneofQName)
-		cpp.Impl.PD("}")
+		cpp.CImpl.P("v->%s = %s_NOT_SET;", fieldName, oneofQName)
+		cpp.CImpl.PD("}")
 	}
 
 	return nil
@@ -851,10 +850,10 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 		cpp.CTop.P("#include \"%s\"", fileName+".json.c.hpp")
 	}
 	cpp.CTop.P("")
-	cpp.CTop.P("extern \"C\" {")
-	cpp.CTop.P("")
-	cpp.CBottom.P("")
-	cpp.CBottom.P("}")
+	cpp.CImplTop.P("extern \"C\" {")
+	cpp.CImplTop.P("")
+	cpp.CImplBottom.P("")
+	cpp.CImplBottom.P("}")
 
 	cpp.HppTop.P("#ifndef AUTO_GENERATED_PROTOC_GEN_JSONIF_HPP_%s", toPreprocessorName(*file.Name))
 	cpp.HppTop.P("#define AUTO_GENERATED_PROTOC_GEN_JSONIF_HPP_%s", toPreprocessorName(*file.Name))
@@ -865,10 +864,6 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 		cpp.HppTop.P("#include \"%s\"", fileName+".json.c.hpp")
 	}
 	cpp.HppTop.P("")
-	cpp.HppTop.P("extern \"C\" {")
-	cpp.HppTop.P("")
-	cpp.HppBottom.P("")
-	cpp.HppBottom.P("}")
 	cpp.HppBottom.P("")
 	cpp.HppBottom.P("#endif")
 
