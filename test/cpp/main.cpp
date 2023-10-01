@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cassert>
+#if defined(JSONIF_USE_NLOHMANN_JSON)
+#else
 #include <boost/json/src.hpp>
+#endif
 
 #include "empty.json.h"
 #include "message.json.h"
@@ -42,8 +45,7 @@ void test_message() {
 }
 
 void test_enumpb() {
-  enumpb::Data a;
-  assert(a == enumpb::Data::FOO);
+  enumpb::Data a = enumpb::Data::FOO;
   a = identify(a);
   assert(a == enumpb::Data::FOO);
 
@@ -160,7 +162,7 @@ void test_jsonfield() {
   jsonfield::Test a;
   a.field = 10;
   auto str = jsonif::to_json(a);
-  assert(str == R"({"test":10,"hoge_field":0})");
+  assert(str == R"({"test":10,"hoge_field":0})" || str == R"({"hoge_field":0,"test":10})");
   a = identify(a);
   assert(a.field == 10);
 }
@@ -182,15 +184,29 @@ void test_discard_if_default() {
 
   a.b = "hoge";
   str = jsonif::to_json(a);
-  assert(str == R"({"a":"","b":"hoge"})");
+  assert(str == R"({"a":"","b":"hoge"})" || str == R"({"b":"hoge","a":""})");
 
   a.b = "";
   a.c.a = 10;
   str = jsonif::to_json(a);
-  assert(str == R"({"a":"","c":{"a":10}})");
+  assert(str == R"({"a":"","c":{"a":10}})" || str == R"({"c":{"a":10},"a":""})");
 }
 
 namespace no_serializer {
+
+#if defined(JSONIF_USE_NLOHMANN_JSON)
+
+static void to_json(nlohmann::json& jv, const ::no_serializer::Test& v) {
+  using nlohmann::to_json;
+  to_json(jv["b"], v.a);
+}
+
+static void from_json(const nlohmann::json& jv, ::no_serializer::Test& v) {
+  using nlohmann::from_json;
+  from_json(jv.at("b"), v.a);
+}
+
+#else
 
 static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ::no_serializer::Test& v) {
   boost::json::object obj;
@@ -203,6 +219,8 @@ static ::no_serializer::Test tag_invoke(const boost::json::value_to_tag<::no_ser
   v.a = boost::json::value_to<std::string>(jv.at("b"));
   return v;
 }
+
+#endif
 
 }
 

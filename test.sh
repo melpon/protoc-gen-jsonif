@@ -62,5 +62,8 @@ popd
 g++ test/cpp/main.cpp -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/boost/include/ -o $BUILD_DIR/test/cpp/test.exe
 $BUILD_DIR/test/cpp/test.exe
 
+g++ test/cpp/main.cpp -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/json/include/ -o $BUILD_DIR/test/cpp/test_nlohmann.exe -DUJSONIF_USE_NLOHMANN_JSON
+$BUILD_DIR/test/cpp/test_nlohmann.exe
+
 g++ test/c/main.cpp $BUILD_DIR/test/c/*.cpp $BUILD_DIR/test/c/google/protobuf/*.cpp -I $BUILD_DIR/test/c -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/boost/include/ -o $BUILD_DIR/test/c/test.exe
 $BUILD_DIR/test/c/test.exe

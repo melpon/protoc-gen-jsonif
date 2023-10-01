@@ -106,7 +106,12 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 		return err
 	}
 	cpp.TagInvokes.P("// %s", qName)
-	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("static void to_json(nlohmann::json& jv, const %s& v)", qName)
+	cpp.TagInvokes.P("#else")
+	cpp.TagInvokes.P("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v)", qName)
+	cpp.TagInvokes.P("#endif")
+	cpp.TagInvokes.PI("{")
 	cpp.TagInvokes.PI("switch (v) {")
 	for _, v := range enum.Value {
 		cpp.TagInvokes.P("case %s::%s:", qName, *v.Name)
@@ -123,9 +128,15 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.PI("static void from_json(const nlohmann::json& jv, %s& v) {", qName)
+	cpp.TagInvokes.P("v = (%s)jv.template get<int>();", qName)
+	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.P("#else")
 	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("return (%s)boost::json::value_to<int>(jv);", qName)
 	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.P("#endif")
 	cpp.TagInvokes.P("")
 
 	return nil
@@ -159,7 +170,12 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 		return err
 	}
 	cpp.TagInvokes.P("// %s", qName)
-	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("static void to_json(nlohmann::json& jv, const %s& v)", qName)
+	cpp.TagInvokes.P("#else")
+	cpp.TagInvokes.P("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v)", qName)
+	cpp.TagInvokes.P("#endif")
+	cpp.TagInvokes.PI("{")
 	cpp.TagInvokes.PI("switch (v) {")
 	for _, field := range fields {
 		cpp.TagInvokes.P("case %s::k%s:", qName, internal.ToUpperCamel(*field.Name))
@@ -176,9 +192,15 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.PD("}")
 	cpp.TagInvokes.P("")
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.PI("static void from_json(const nlohmann::json& jv, %s& v) {", qName)
+	cpp.TagInvokes.P("v = (%s)jv.template get<int>();", qName)
+	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.P("#else")
 	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
 	cpp.TagInvokes.P("return (%s)boost::json::value_to<int>(jv);", qName)
 	cpp.TagInvokes.PD("}")
+	cpp.TagInvokes.P("#endif")
 	cpp.TagInvokes.P("")
 
 	return nil
@@ -286,8 +308,17 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	if noSerializer {
 		cpp.TagInvokes.P("#if 0")
 	}
-	cpp.TagInvokes.PI("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v) {", qName)
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("static void to_json(nlohmann::json& jv, const %s& v)", qName)
+	cpp.TagInvokes.P("#else")
+	cpp.TagInvokes.P("static void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const %s& v)", qName)
+	cpp.TagInvokes.P("#endif")
+	cpp.TagInvokes.PI("{")
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("nlohmann::json obj;")
+	cpp.TagInvokes.P("#else")
 	cpp.TagInvokes.P("boost::json::object obj;")
+	cpp.TagInvokes.P("#endif")
 	for _, field := range desc.Field {
 		fieldName := internal.ToSnakeCase(*field.Name)
 		fieldKey := internal.GetJsonName(field, fieldName)
@@ -299,14 +330,28 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		if discard {
 			cpp.TagInvokes.PI("if (v.%s != decltype(v.%s)()) {", fieldName, fieldName)
 		}
+		cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+		cpp.TagInvokes.PI("{")
+		cpp.TagInvokes.P("using nlohmann::to_json;")
+		cpp.TagInvokes.P("to_json(obj[\"%s\"], v.%s);", fieldKey, fieldName)
+		cpp.TagInvokes.PD("}")
+		cpp.TagInvokes.P("#else")
 		cpp.TagInvokes.P("obj[\"%s\"] = boost::json::value_from(v.%s);", fieldKey, fieldName)
+		cpp.TagInvokes.P("#endif")
 		if discard {
 			cpp.TagInvokes.PD("}")
 		}
 	}
 	for _, oneof := range desc.OneofDecl {
 		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+		cpp.TagInvokes.PI("{")
+		cpp.TagInvokes.P("using nlohmann::to_json;")
+		cpp.TagInvokes.P("to_json(obj[\"%s\"], v.%s);", fieldName, fieldName)
+		cpp.TagInvokes.PD("}")
+		cpp.TagInvokes.P("#else")
 		cpp.TagInvokes.P("obj[\"%s\"] = boost::json::value_from(v.%s);", fieldName, fieldName)
+		cpp.TagInvokes.P("#endif")
 	}
 	cpp.TagInvokes.P("jv = std::move(obj);")
 	cpp.TagInvokes.PD("}")
@@ -317,8 +362,16 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	if noDeserializer {
 		cpp.TagInvokes.P("#if 0")
 	}
-	cpp.TagInvokes.PI("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv) {", qName, qName)
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("static void from_json(const nlohmann::json& jv, %s& v)", qName)
+	cpp.TagInvokes.P("#else")
+	cpp.TagInvokes.P("static %s tag_invoke(const boost::json::value_to_tag<%s>&, const boost::json::value& jv)", qName, qName)
+	cpp.TagInvokes.P("#endif")
+	cpp.TagInvokes.PI("{")
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("#else")
 	cpp.TagInvokes.P("%s v;", qName)
+	cpp.TagInvokes.P("#endif")
 	for _, field := range desc.Field {
 		typeName, _, err := toTypeName(field)
 		if err != nil {
@@ -331,9 +384,21 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			optimistic = proto.GetExtension(field.Options, generated.E_JsonifOptimistic).(bool)
 		}
 		if field.OneofIndex != nil || optimistic {
-			cpp.TagInvokes.PI("if (jv.as_object().find(\"%s\") != jv.as_object().end()) {", fieldKey)
+			cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+			cpp.TagInvokes.P("if (jv.contains(\"%s\"))", fieldKey)
+			cpp.TagInvokes.P("#else")
+			cpp.TagInvokes.P("if (jv.as_object().find(\"%s\") != jv.as_object().end())", fieldKey)
+			cpp.TagInvokes.P("#endif")
+			cpp.TagInvokes.PI("{")
 		}
+		cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+		cpp.TagInvokes.PI("{")
+		cpp.TagInvokes.P("using nlohmann::from_json;")
+		cpp.TagInvokes.P("from_json(jv.at(\"%s\"), v.%s);", fieldKey, fieldName)
+		cpp.TagInvokes.PD("}")
+		cpp.TagInvokes.P("#else")
 		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldKey)
+		cpp.TagInvokes.P("#endif")
 		if field.OneofIndex != nil || optimistic {
 			cpp.TagInvokes.PD("}")
 		}
@@ -344,9 +409,19 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			return err
 		}
 		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+		cpp.TagInvokes.PI("{")
+		cpp.TagInvokes.P("using nlohmann::from_json;")
+		cpp.TagInvokes.P("from_json(jv.at(\"%s\"), v.%s);", fieldName, fieldName)
+		cpp.TagInvokes.PD("}")
+		cpp.TagInvokes.P("#else")
 		cpp.TagInvokes.P("v.%s = boost::json::value_to<%s>(jv.at(\"%s\"));", fieldName, typeName, fieldName)
+		cpp.TagInvokes.P("#endif")
 	}
+	cpp.TagInvokes.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.TagInvokes.P("#else")
 	cpp.TagInvokes.P("return v;")
+	cpp.TagInvokes.P("#endif")
 	cpp.TagInvokes.PD("}")
 	if noDeserializer {
 		cpp.TagInvokes.P("#endif")
@@ -389,7 +464,11 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 	cpp.Top.P("#include <vector>")
 	cpp.Top.P("#include <stddef.h>")
 	cpp.Top.P("")
+	cpp.Top.P("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.Top.P("#include <nlohmann/json.hpp>")
+	cpp.Top.P("#else")
 	cpp.Top.P("#include <boost/json.hpp>")
+	cpp.Top.P("#endif")
 	cpp.Top.P("")
 	for _, dep := range file.Dependency {
 		// ファイルが存在してない可能性もあるのでチェックする
@@ -428,12 +507,25 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 	cpp.Bottom.P("")
 	cpp.Bottom.P("template<class T>")
 	cpp.Bottom.PI("inline T from_json(const std::string& s) {")
+	cpp.Bottom.PI("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.Bottom.P("T t;")
+	cpp.Bottom.P("from_json(nlohmann::json::parse(s), t);")
+	cpp.Bottom.P("return t;")
+	cpp.Bottom.PDI("#else")
 	cpp.Bottom.P("return boost::json::value_to<T>(boost::json::parse(s));")
+	cpp.Bottom.PD("#endif")
 	cpp.Bottom.PD("}")
 	cpp.Bottom.P("")
 	cpp.Bottom.P("template<class T>")
 	cpp.Bottom.PI("inline std::string to_json(const T& v) {")
+	cpp.Bottom.PI("#if defined(JSONIF_USE_NLOHMANN_JSON)")
+	cpp.Bottom.P("using nlohmann::to_json;")
+	cpp.Bottom.P("nlohmann::json j;")
+	cpp.Bottom.P("to_json(j, v);")
+	cpp.Bottom.P("return j.dump();")
+	cpp.Bottom.PDI("#else")
 	cpp.Bottom.P("return boost::json::serialize(boost::json::value_from(v));")
+	cpp.Bottom.PD("#endif")
 	cpp.Bottom.PD("}")
 	cpp.Bottom.P("")
 	cpp.Bottom.P("}")

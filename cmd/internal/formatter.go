@@ -38,6 +38,11 @@ func (f *Formatter) PD(format string, a ...interface{}) {
 	f.Deindent()
 	f.P(format, a...)
 }
+func (f *Formatter) PDI(format string, a ...interface{}) {
+	f.Deindent()
+	f.P(format, a...)
+	f.Indent()
+}
 func (f *Formatter) String() string {
 	return f.builder.String()
 }

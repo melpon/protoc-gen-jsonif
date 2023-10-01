@@ -58,3 +58,11 @@ Push-Location $BUILD_DIR\boost_${_BOOST_UNDERSCORE_VERSION}
   mkdir -Force $INSTALL_DIR\boost\include
   Copy-Item -Recurse boost $INSTALL_DIR\boost\include\
 Pop-Location
+
+# nlohmann::json
+Push-Location $INSTALL_DIR
+  if (Test-Path "json") {
+    Remove-Item json -Force -Recurse
+  }
+  git clone https://github.com/nlohmann/json.git
+Pop-Location
