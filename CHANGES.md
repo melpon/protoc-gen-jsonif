@@ -11,6 +11,8 @@
 
 ## develop
 
+## 0.8.0 (2023-10-02)
+
 - [ADD] nlohmann::json に対応する
     - @melpon
 
