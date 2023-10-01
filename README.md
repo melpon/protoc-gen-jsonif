@@ -10,7 +10,7 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 
 ## 実装状況
 
-- [x] C++ 用コードの出力 (Boost.JSON 利用)
+- [x] C++ 用コードの出力 (Boost.JSON または nlohmann/json 利用)
 - [x] Unity 用コードの出力
 - [x] C 用コードの出力（コンパイルには C++ 用コードが必要）
 - [x] message, enum 対応
