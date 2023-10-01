@@ -155,7 +155,7 @@ int main() {
 ```
 
 自動生成された `test.json.h` は以下のようになっています（若干変わっている可能性もあります）。
-C++ 標準には JSON ライブラリが無いため、現在は Boost.JSON を利用しています。
+C++ 標準には JSON ライブラリが無いため、現在はデフォルトでは Boost.JSON を利用しています。
 
 ```cpp
 #include <string>
@@ -223,6 +223,8 @@ inline std::string to_json(const T& v) {
 
 #endif
 ```
+
+また、コンパイル時のフラグに `JSONIF_USE_NLOHMANN_JSON` を指定すると、Boost.JSON の代わりに [nlohmann/json](https://github.com/nlohmann/json) を利用するようになります。
 
 ### Unity
 

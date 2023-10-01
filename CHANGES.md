@@ -11,6 +11,9 @@
 
 ## develop
 
+- [ADD] nlohmann::json に対応する
+    - @melpon
+
 ## 0.7.2 (2023-05-21)
 
 - [FIX] C++ 向けの関数を C リンケージにしていたのを修正
