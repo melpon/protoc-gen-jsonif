@@ -412,9 +412,17 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		if isRepeated {
 			cpp.CppImpl.PI("for (int i = 0; i < v->%s_len; i++) {", fieldName)
 			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING {
-				cpp.CppImpl.P("if (v->%s_lens[i] != 0) u.%s.push_back(std::string(v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName, fieldName)
+				cpp.CppImpl.PI("if (v->%s_lens[i] != 0) {", fieldName)
+				cpp.CppImpl.P("u.%s.push_back(std::string(v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName)
+				cpp.CppImpl.PDI("} else {")
+				cpp.CppImpl.P("u.%s.push_back(\"\");", fieldName)
+				cpp.CppImpl.PD("}")
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
-				cpp.CppImpl.P("if (v->%s_lens[i] != 0) u.%s.push_back(std::string((const char*)v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName, fieldName)
+				cpp.CppImpl.PI("if (v->%s_lens[i] != 0) {", fieldName)
+				cpp.CppImpl.P("u.%s.push_back(std::string((const char*)v->%s[i], v->%s_lens[i]));", fieldName, fieldName, fieldName)
+				cpp.CppImpl.PDI("} else {")
+				cpp.CppImpl.P("u.%s.push_back(\"\");", fieldName)
+				cpp.CppImpl.PD("}")
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
@@ -428,6 +436,15 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			}
 			cpp.CppImpl.PD("}")
 		}
+	}
+	for _, oneof := range desc.OneofDecl {
+		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		typeName := internal.ToUpperCamel(*oneof.Name) + "Case"
+		oneofQName, err := toCppQualifiedName(typeName, pkg, append(parents, desc))
+		if err != nil {
+			return err
+		}
+		cpp.CppImpl.P("u.%s = (%s)v->%s;", fieldName, oneofQName, fieldName)
 	}
 	cpp.CppImpl.P("return u;")
 	cpp.CppImpl.PD("}")
@@ -478,7 +495,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
 				cpp.CppImpl.PI("if (!u.%s[i].empty()) {", fieldName)
 				cpp.CppImpl.P("v->%s[i] = (uint8_t*)malloc(sizeof(uint8_t) * u.%s[i].size());", fieldName, fieldName)
-				cpp.CppImpl.P("memcpy(v->%s[i],  &u.%s[i], u.%s[i].size());", fieldName, fieldName, fieldName)
+				cpp.CppImpl.P("memcpy(v->%s[i], u.%s[i].data(), u.%s[i].size());", fieldName, fieldName, fieldName)
 				cpp.CppImpl.PD("}")
 				cpp.CppImpl.P("v->%s_lens[i] = (int)u.%s[i].size();", fieldName, fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
@@ -495,6 +512,10 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			}
 			cpp.CppImpl.PD("}")
 		}
+	}
+	for _, oneof := range desc.OneofDecl {
+		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
+		cpp.CppImpl.P("v->%s = (int)u.%s;", fieldName, fieldName)
 	}
 	cpp.CppImpl.PD("}")
 
@@ -536,6 +557,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 				cpp.CImpl.P("v->%s_lens[i] = 0;", fieldName)
 				cpp.CImpl.PD("}")
 				cpp.CImpl.P("if (v->%s_lens) free(v->%s_lens);", fieldName, fieldName)
+				cpp.CImpl.P("v->%s_lens = nullptr;", fieldName)
 			} else if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 				typeName, err := getMessageTypeName(field)
 				if err != nil {
@@ -546,6 +568,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 				cpp.CImpl.PD("}")
 			}
 			cpp.CImpl.P("if (v->%s) free(v->%s);", fieldName, fieldName)
+			cpp.CImpl.P("v->%s = nullptr;", fieldName)
 			cpp.CImpl.P("v->%s_len = 0;", fieldName)
 		}
 	}
@@ -662,6 +685,12 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			cpp.CImpl.PI("if (num != 0) {")
 			cpp.CImpl.P("v->%s = (decltype(v->%s))malloc(sizeof(v->%s[0]) * num);", fieldName, fieldName, fieldName)
 			cpp.CImpl.P("memset(v->%s, 0, sizeof(v->%s[0]) * num);", fieldName, fieldName)
+			cpp.CImpl.P("v->%s_len = num;", fieldName)
+			if *field.Type == descriptorpb.FieldDescriptorProto_TYPE_STRING ||
+				*field.Type == descriptorpb.FieldDescriptorProto_TYPE_BYTES {
+				cpp.CImpl.P("v->%s_lens = (decltype(v->%s_lens))malloc(sizeof(v->%s_lens[0]) * num);", fieldName, fieldName, fieldName)
+				cpp.CImpl.P("memset(v->%s_lens, 0, sizeof(v->%s_lens[0]) * num);", fieldName, fieldName)
+			}
 			cpp.CImpl.PD("}")
 			cpp.CImpl.PD("}")
 			cpp.CImpl.P("")

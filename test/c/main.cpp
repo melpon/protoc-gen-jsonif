@@ -33,6 +33,7 @@
     std::string vs(CONCAT(t, _to_json_size)(v) - 1, '\0'); \
     CONCAT(t, _to_json)(v, &vs[0]); \
     t r; \
+    CONCAT(t, _init)(&r); \
     CONCAT(t, _from_json)(vs.c_str(), &r); \
     std::string rs(CONCAT(t, _to_json_size)(v) - 1, '\0'); \
     CONCAT(t, _to_json)(v, &rs[0]); \
@@ -137,15 +138,22 @@ void test_repeated() {
   assert(b.d_len == 0);
 
   repeated_Test_alloc_a(&b, 1);
+  repeated_Test_alloc_b(&b, 1);
+  repeated_Test_alloc_c(&b, 1);
+  repeated_Test_alloc_d(&b, 1);
   repeated_Test_set_a(&b, 0, 1);
   repeated_Test_set_b(&b, 0, "foo");
   repeated_Test_set_c(&b, 0, repeated_Enum_BAR);
   repeated_Message_set_name(&b.d[0], "bar");
+  assert(b.a_len == 1 && b.a[0] == 1);
+  assert(b.b_len == 1 && strcmp(b.b[0], "foo") == 0 && b.b_lens[0] == 3);
+  assert(b.c_len == 1 && b.c[0] == repeated_Enum_BAR);
+  assert(b.d_len == 1 && strcmp(b.d[0].name, "bar") == 0);
   repeated_Test c;
   repeated_Test_init(&c);
   TEST_IDENTIFY(repeated_Test, &b, &c);
   assert(c.a_len == 1 && c.a[0] == 1);
-  assert(c.b_len == 1 && c.b[0] == "foo" && c.b_lens[0] == 3);
+  assert(c.b_len == 1 && strcmp(c.b[0], "foo") == 0 && c.b_lens[0] == 3);
   assert(c.c_len == 1 && c.c[0] == repeated_Enum_BAR);
   assert(c.d_len == 1 && strcmp(c.d[0].name, "bar") == 0);
 }
@@ -218,7 +226,7 @@ void test_bytes() {
   bytes_Test_set_data(&a, (const uint8_t*)v.data(), v.size());
   bytes_Test_alloc_rp_data(&a, 2);
   bytes_Test_set_rp_data(&a, 0, (const uint8_t*)v.data(), v.size());
-  bytes_Test_set_rp_data(&a, 0, (const uint8_t*)v2.data(), v2.size());
+  bytes_Test_set_rp_data(&a, 1, (const uint8_t*)v2.data(), v2.size());
   bytes_Test b;
   bytes_Test_init(&b);
   TEST_IDENTIFY(bytes_Test, &a, &b);
