@@ -888,6 +888,7 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 	cpp.HppTop.P("#define AUTO_GENERATED_PROTOC_GEN_JSONIF_HPP_%s", toPreprocessorName(*file.Name))
 	cpp.HppTop.P("")
 	cpp.HppTop.P("#include \"%s\"", cpphFileName)
+	cpp.HppTop.P("#include \"%s\"", hFileName)
 	cpp.HppTop.P("")
 	for _, fileName := range depFileNames {
 		cpp.HppTop.P("#include \"%s\"", fileName+".json.c.hpp")
