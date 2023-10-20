@@ -146,10 +146,10 @@ int main() {
   // JSON 文字列から元に戻す
   p = jsonif::from_json<test::PersonList>(str);
 
-  std::cout << p[0].name << std::endl;
+  std::cout << p.people[0].name << std::endl;
   // → hoge
 
-  std::cout << p[1].name << std::endl;
+  std::cout << p.people[1].name << std::endl;
   // → fuga
 }
 ```
