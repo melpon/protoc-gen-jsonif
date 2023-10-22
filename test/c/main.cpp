@@ -2,6 +2,8 @@
 #include <cassert>
 #include <boost/json/src.hpp>
 
+#include <stdlib.h>
+
 #include "empty.json.c.h"
 #include "message.json.c.h"
 #include "enumpb.json.c.h"
@@ -10,6 +12,7 @@
 #include "oneof.json.c.h"
 #include "importing.json.c.h"
 #include "bytes.json.c.h"
+#include "size.json.c.h"
 // #include "jsonfield.json.h"
 // #include "optimistic.json.h"
 // #include "discard_if_default.json.h"
@@ -236,6 +239,17 @@ void test_bytes() {
   assert(b.rp_data_lens[1] == v2.size() && memcmp(b.rp_data[1], v2.data(), v2.size()) == 0);
 }
 
+void test_size() {
+  assert(size_Test_size() == 8);
+  size_Test* p = (size_Test*)malloc(size_Test_size());
+  size_Test_init(p);
+  size_Test_set_v(p, 100);
+  size_Test* q = (size_Test*)malloc(size_Test_size());
+  size_Test_init(q);
+  TEST_IDENTIFY(size_Test, p, q);
+  assert(p->v == 100 && q->v == 100);
+}
+
 int main() {
   test_empty();
   test_message();
@@ -245,6 +259,7 @@ int main() {
   test_oneof();
   test_importing();
   test_bytes();
+  test_size();
 
   std::cout << "C Test passed" << std::endl;
 }

@@ -326,6 +326,7 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	// 	cpp.TagInvokes.P("#endif")
 	// }
 	// cpp.TagInvokes.P("")
+	cpp.Typedefs.P("int %s_size();", qName)
 	cpp.Typedefs.P("void %s_init(%s* v);", qName, qName)
 	cpp.Typedefs.P("void %s_destroy(%s*);", qName, qName)
 	cpp.Typedefs.P("void %s_copy(const %s* a, %s* b);", qName, qName, qName)
@@ -518,6 +519,11 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 		cpp.CppImpl.P("v->%s = (int)u.%s;", fieldName, fieldName)
 	}
 	cpp.CppImpl.PD("}")
+
+	// size
+	cpp.CImpl.PI("int %s_size() {", qName)
+	cpp.CImpl.P("return sizeof(%s);", qName)
+	cpp.CImpl.PD("}")
 
 	// init
 	cpp.CImpl.PI("void %s_init(%s* v) {", qName, qName)

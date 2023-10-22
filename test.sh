@@ -30,6 +30,7 @@ pushd test/proto
     nested.proto \
     oneof.proto \
     repeated.proto \
+    size.proto \
     jsonfield.proto \
     optimistic.proto \
     discard_if_default.proto \
@@ -46,7 +47,8 @@ pushd test/proto
     message.proto \
     nested.proto \
     oneof.proto \
-    repeated.proto
+    repeated.proto \
+    size.proto
   $INSTALL_DIR/protoc/bin/protoc \
     --plugin=protoc-gen-jsonif-unity=$BUILD_DIR/test/protoc-gen-jsonif-unity \
     --jsonif-unity_out=../unity/JsonifUnityTest/Assets/Generated \
