@@ -11,6 +11,8 @@
 
 ## develop
 
+## 0.10.0 (2023-11-14)
+
 - [CHANGE] enum class にするのをやめて enum で定義する
     - @melpon
 
