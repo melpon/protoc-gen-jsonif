@@ -78,10 +78,10 @@ void test_message() {
 }
 
 void test_enumpb() {
-  enumpb_Data a = enumpb_Data_FOO;
-  assert(a == enumpb_Data_FOO);
-  a = enumpb_Data_BAR;
-  assert(a == enumpb_Data_BAR);
+  enumpb_Data a = enumpb_FOO;
+  assert(a == enumpb_FOO);
+  a = enumpb_BAR;
+  assert(a == enumpb_BAR);
 }
 
 void test_nested() {
@@ -89,32 +89,32 @@ void test_nested() {
   nested_nested_Test2_init(&a);
   assert(a.nested_message.name == NULL);
   assert(a.nested_message.name_len == 0);
-  assert(a.nested_enum == nested_nested_Test_NestedEnum_FOO);
+  assert(a.nested_enum == nested_nested_Test_FOO);
   assert(a.test.nested_message.name == NULL);
-  assert(a.test.nested_enum == nested_nested_Test_NestedEnum_FOO);
+  assert(a.test.nested_enum == nested_nested_Test_FOO);
   nested_nested_Test2 b;
   nested_nested_Test2_init(&b);
   TEST_IDENTIFY(nested_nested_Test2, &a, &b);
   assert(b.nested_message.name == NULL);
   assert(b.nested_message.name_len == 0);
-  assert(b.nested_enum == nested_nested_Test_NestedEnum_FOO);
+  assert(b.nested_enum == nested_nested_Test_FOO);
   assert(b.test.nested_message.name == NULL);
   assert(b.test.nested_message.name_len == 0);
-  assert(b.test.nested_enum == nested_nested_Test_NestedEnum_FOO);
+  assert(b.test.nested_enum == nested_nested_Test_FOO);
 
   nested_nested_Test_NestedMessage_set_name(&b.nested_message, "foo");
-  nested_nested_Test2_set_nested_enum(&b, nested_nested_Test_NestedEnum_BAR);
+  nested_nested_Test2_set_nested_enum(&b, nested_nested_Test_BAR);
   nested_nested_Test_NestedMessage_set_name(&b.test.nested_message, "bar");
-  nested_nested_Test_set_nested_enum(&b.test, nested_nested_Test_NestedEnum_HOGE);
+  nested_nested_Test_set_nested_enum(&b.test, nested_nested_Test_HOGE);
   nested_nested_Test2 c;
   nested_nested_Test2_init(&c);
   TEST_IDENTIFY(nested_nested_Test2, &b, &c);
   assert(strcmp(c.nested_message.name, "foo") == 0);
   assert(c.nested_message.name_len == 3);
-  assert(c.nested_enum == nested_nested_Test_NestedEnum_BAR);
+  assert(c.nested_enum == nested_nested_Test_BAR);
   assert(strcmp(c.test.nested_message.name, "bar") == 0);
   assert(c.test.nested_message.name_len == 3);
-  assert(c.test.nested_enum == nested_nested_Test_NestedEnum_HOGE);
+  assert(c.test.nested_enum == nested_nested_Test_HOGE);
 }
 
 void test_repeated() {
@@ -146,18 +146,18 @@ void test_repeated() {
   repeated_Test_alloc_d(&b, 1);
   repeated_Test_set_a(&b, 0, 1);
   repeated_Test_set_b(&b, 0, "foo");
-  repeated_Test_set_c(&b, 0, repeated_Enum_BAR);
+  repeated_Test_set_c(&b, 0, repeated_BAR);
   repeated_Message_set_name(&b.d[0], "bar");
   assert(b.a_len == 1 && b.a[0] == 1);
   assert(b.b_len == 1 && strcmp(b.b[0], "foo") == 0 && b.b_lens[0] == 3);
-  assert(b.c_len == 1 && b.c[0] == repeated_Enum_BAR);
+  assert(b.c_len == 1 && b.c[0] == repeated_BAR);
   assert(b.d_len == 1 && strcmp(b.d[0].name, "bar") == 0);
   repeated_Test c;
   repeated_Test_init(&c);
   TEST_IDENTIFY(repeated_Test, &b, &c);
   assert(c.a_len == 1 && c.a[0] == 1);
   assert(c.b_len == 1 && strcmp(c.b[0], "foo") == 0 && c.b_lens[0] == 3);
-  assert(c.c_len == 1 && c.c[0] == repeated_Enum_BAR);
+  assert(c.c_len == 1 && c.c[0] == repeated_BAR);
   assert(c.d_len == 1 && strcmp(c.d[0].name, "bar") == 0);
 }
 
@@ -184,12 +184,12 @@ void test_oneof() {
   assert(b.test_oneof_case == oneof_Test_TestOneofCase_kB);
   assert(b.b_len == 3 && strcmp(b.b, "foo") == 0);
 
-  oneof_Test_set_c(&a, oneof_Enum_BAR);
+  oneof_Test_set_c(&a, oneof_BAR);
   assert(a.test_oneof_case == oneof_Test_TestOneofCase_kC);
-  assert(a.c == oneof_Enum_BAR);
+  assert(a.c == oneof_BAR);
   TEST_IDENTIFY(oneof_Test, &a, &b);
   assert(b.test_oneof_case == oneof_Test_TestOneofCase_kC);
-  assert(b.c == oneof_Enum_BAR);
+  assert(b.c == oneof_BAR);
 
   oneof_Message m;
   oneof_Message_init(&m);

@@ -45,36 +45,36 @@ void test_message() {
 }
 
 void test_enumpb() {
-  enumpb::Data a = enumpb::Data::FOO;
+  enumpb::Data a = enumpb::FOO;
   a = identify(a);
-  assert(a == enumpb::Data::FOO);
+  assert(a == enumpb::FOO);
 
   a = enumpb::Data::BAR;
   a = identify(a);
-  assert(a == enumpb::Data::BAR);
+  assert(a == enumpb::BAR);
 }
 
 void test_nested() {
   nested::nested::Test2 a;
   assert(a.nested_message.name == "");
-  assert(a.nested_enum == nested::nested::Test::NestedEnum::FOO);
+  assert(a.nested_enum == nested::nested::Test::FOO);
   assert(a.test.nested_message.name == "");
-  assert(a.test.nested_enum == nested::nested::Test::NestedEnum::FOO);
+  assert(a.test.nested_enum == nested::nested::Test::FOO);
   a = identify(a);
   assert(a.nested_message.name == "");
-  assert(a.nested_enum == nested::nested::Test::NestedEnum::FOO);
+  assert(a.nested_enum == nested::nested::Test::FOO);
   assert(a.test.nested_message.name == "");
-  assert(a.test.nested_enum == nested::nested::Test::NestedEnum::FOO);
+  assert(a.test.nested_enum == nested::nested::Test::FOO);
 
   a.nested_message.name = "foo";
-  a.nested_enum = nested::nested::Test::NestedEnum::BAR;
+  a.nested_enum = nested::nested::Test::BAR;
   a.test.nested_message.name = "bar";
-  a.test.nested_enum = nested::nested::Test::NestedEnum::HOGE;
+  a.test.nested_enum = nested::nested::Test::HOGE;
   a = identify(a);
   assert(a.nested_message.name == "foo");
-  assert(a.nested_enum == nested::nested::Test::NestedEnum::BAR);
+  assert(a.nested_enum == nested::nested::Test::BAR);
   assert(a.test.nested_message.name == "bar");
-  assert(a.test.nested_enum == nested::nested::Test::NestedEnum::HOGE);
+  assert(a.test.nested_enum == nested::nested::Test::HOGE);
 }
 
 void test_repeated() {
@@ -91,12 +91,12 @@ void test_repeated() {
 
   a.a.push_back(1);
   a.b.push_back("foo");
-  a.c.push_back(repeated::Enum::BAR);
+  a.c.push_back(repeated::BAR);
   a.d.push_back(repeated::Message{"bar"});
   a = identify(a);
   assert(a.a.size() == 1 && a.a.at(0) == 1);
   assert(a.b.size() == 1 && a.b.at(0) == "foo");
-  assert(a.c.size() == 1 && a.c.at(0) == repeated::Enum::BAR);
+  assert(a.c.size() == 1 && a.c.at(0) == repeated::BAR);
   assert(a.d.size() == 1 && a.d.at(0).name == "bar");
 }
 
@@ -120,12 +120,12 @@ void test_oneof() {
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::kB);
   assert(a.b == "foo");
 
-  a.set_c(oneof::Enum::BAR);
+  a.set_c(oneof::BAR);
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::kC);
-  assert(a.c == oneof::Enum::BAR);
+  assert(a.c == oneof::BAR);
   a = identify(a);
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::kC);
-  assert(a.c == oneof::Enum::BAR);
+  assert(a.c == oneof::BAR);
 
   a.set_d(oneof::Message{"bar"});
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::kD);

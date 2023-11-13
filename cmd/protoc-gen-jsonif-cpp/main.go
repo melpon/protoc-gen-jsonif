@@ -36,6 +36,16 @@ func toQualifiedName(name string, pkg *string, parents []*descriptorpb.Descripto
 	qualifiedName += "::" + name
 	return qualifiedName, nil
 }
+func toEnumQualifiedName(name string, pkg *string, parents []*descriptorpb.DescriptorProto) (string, error) {
+	qualifiedName := ""
+	if pkg != nil {
+		qualifiedName += "::" + strings.ReplaceAll(*pkg, ".", "::")
+	}
+	for _, parent := range parents {
+		qualifiedName += "::" + *parent.Name
+	}
+	return qualifiedName, nil
+}
 
 func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error) {
 	isRepeated := *field.Label == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
@@ -94,7 +104,7 @@ func toTypeName(field *descriptorpb.FieldDescriptorProto) (string, string, error
 }
 
 func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
-	cpp.Typedefs.PI("enum class %s {", *enum.Name)
+	cpp.Typedefs.PI("enum %s {", *enum.Name)
 	for _, v := range enum.Value {
 		cpp.Typedefs.P("%s = %d,", *v.Name, *v.Number)
 	}
@@ -102,6 +112,10 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	cpp.Typedefs.P("")
 
 	qName, err := toQualifiedName(*enum.Name, pkg, parents)
+	if err != nil {
+		return err
+	}
+	qEnumName, err := toEnumQualifiedName(*enum.Name, pkg, parents)
 	if err != nil {
 		return err
 	}
@@ -114,7 +128,7 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	cpp.TagInvokes.PI("{")
 	cpp.TagInvokes.PI("switch (v) {")
 	for _, v := range enum.Value {
-		cpp.TagInvokes.P("case %s::%s:", qName, *v.Name)
+		cpp.TagInvokes.P("case %s::%s:", qEnumName, *v.Name)
 	}
 	cpp.TagInvokes.Indent()
 	cpp.TagInvokes.P("jv = (int)v;")

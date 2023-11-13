@@ -49,6 +49,20 @@ func toQualifiedName(name string, pkg *string, parents []*descriptorpb.Descripto
 	qualifiedName += name
 	return qualifiedName, nil
 }
+func toEnumQualifiedName(name string, pkg *string, parents []*descriptorpb.DescriptorProto) (string, error) {
+	qualifiedName := ""
+	if pkg != nil {
+		qualifiedName += strings.ReplaceAll(*pkg, ".", "_")
+	}
+	for _, parent := range parents {
+		if len(qualifiedName) == 0 {
+			qualifiedName += *parent.Name
+		} else {
+			qualifiedName += "_" + *parent.Name
+		}
+	}
+	return qualifiedName, nil
+}
 func toCppQualifiedName(name string, pkg *string, parents []*descriptorpb.DescriptorProto) (string, error) {
 	qualifiedName := ""
 	if pkg != nil {
@@ -132,16 +146,20 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 	if err != nil {
 		return err
 	}
+	qEnumName, err := toEnumQualifiedName(*enum.Name, pkg, parents)
+	if err != nil {
+		return err
+	}
 
 	cpp.Enums.P("typedef int %s;", qName)
 	for _, v := range enum.Value {
-		cpp.Enums.P("extern const %s %s_%s;", qName, qName, *v.Name)
+		cpp.Enums.P("extern const %s %s_%s;", qName, qEnumName, *v.Name)
 	}
 	cpp.Enums.P("")
 
 	cpp.CppImpl.P("// %s", *enum.Name)
 	for _, v := range enum.Value {
-		cpp.CppImpl.P("const %s %s_%s = %d;", qName, qName, *v.Name, *v.Number)
+		cpp.CppImpl.P("const %s %s_%s = %d;", qName, qEnumName, *v.Name, *v.Number)
 	}
 	cpp.CppImpl.P("")
 
