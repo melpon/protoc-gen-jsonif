@@ -135,9 +135,15 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 
 	cpp.Enums.P("typedef int %s;", qName)
 	for _, v := range enum.Value {
-		cpp.Enums.P("const %s %s_%s = %d;", qName, qName, *v.Name, *v.Number)
+		cpp.Enums.P("extern const %s %s_%s;", qName, qName, *v.Name)
 	}
 	cpp.Enums.P("")
+
+	cpp.CppImpl.P("// %s", *enum.Name)
+	for _, v := range enum.Value {
+		cpp.CppImpl.P("const %s %s_%s = %d;", qName, qName, *v.Name, *v.Number)
+	}
+	cpp.CppImpl.P("")
 
 	return nil
 }
