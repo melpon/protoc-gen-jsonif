@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/melpon/protoc-gen-jsonif/cmd/internal"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 )
@@ -102,11 +103,10 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.FieldDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, u *unityFile) error {
 	typeName := internal.ToUpperCamel(*oneof.Name) + "Case"
 	fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
-	upperName := strings.ToUpper(internal.ToSnakeCase(*oneof.Name))
 	u.Typedefs.P("[System.Serializable]")
 	u.Typedefs.P("public enum %s", typeName)
 	u.Typedefs.PI("{")
-	u.Typedefs.P("%s_NOT_SET = 0,", upperName)
+	u.Typedefs.P("NOT_SET = 0,")
 	for _, field := range fields {
 		u.Typedefs.P("k%s = %d,", internal.ToUpperCamel(*field.Name), *field.Number)
 	}
@@ -114,7 +114,7 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 	u.Typedefs.P("public %s %s;", typeName, fieldName)
 	u.Typedefs.P("public void Clear%s()", typeName)
 	u.Typedefs.PI("{")
-	u.Typedefs.P("%s = %s.%s_NOT_SET;", fieldName, typeName, upperName)
+	u.Typedefs.P("%s = %s.NOT_SET;", fieldName, typeName)
 	for _, field := range fields {
 		fieldType, defaultValue, err := toTypeName(field)
 		if err != nil {
@@ -149,13 +149,13 @@ func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descr
 		}
 	}
 	// oneof の比較
-	for _, oneof := range desc.OneofDecl {
+	for i, oneof := range desc.OneofDecl {
 		oneofFieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
 		oneofTypeName := internal.ToUpperCamel(*oneof.Name) + "Case"
 		u.Typedefs.P("if (!this.%s.Equals(v.%s)) return false;", oneofFieldName, oneofFieldName)
 
 		for _, field := range desc.Field {
-			if field.OneofIndex != nil && *field.OneofIndex == *field.OneofIndex {
+			if field.OneofIndex != nil && *field.OneofIndex == int32(i) {
 				fieldName := internal.ToSnakeCase(*field.Name)
 				enumFieldName := internal.ToUpperCamel(*field.Name)
 				u.Typedefs.P("if (this.%s == %s.k%s && !this.%s.Equals(v.%s)) return false;",
@@ -183,13 +183,13 @@ func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descr
 		}
 	}
 	// oneof のハッシュ値
-	for _, oneof := range desc.OneofDecl {
+	for i, oneof := range desc.OneofDecl {
 		oneofFieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
 		oneofTypeName := internal.ToUpperCamel(*oneof.Name) + "Case"
 		u.Typedefs.P("hashcode = hashcode * 7302013 ^ %s.GetHashCode();", oneofFieldName)
 
 		for _, field := range desc.Field {
-			if field.OneofIndex != nil && *field.OneofIndex == *field.OneofIndex {
+			if field.OneofIndex != nil && *field.OneofIndex == int32(i) {
 				fieldName := internal.ToSnakeCase(*field.Name)
 				enumFieldName := internal.ToUpperCamel(*field.Name)
 				u.Typedefs.P("if (%s == %s.k%s) hashcode = hashcode * 7302013 ^ %s.GetHashCode();",
@@ -346,6 +346,7 @@ func genJsonif() (*pluginpb.CodeGeneratorResponse_File, error) {
 
 func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	resp := &pluginpb.CodeGeneratorResponse{}
+	resp.SupportedFeatures = proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL))
 	for _, file := range req.ProtoFile {
 		respFile, err := genFile(file)
 		if err != nil {

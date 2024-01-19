@@ -159,16 +159,15 @@ func genEnum(enum *descriptorpb.EnumDescriptorProto, pkg *string, parents []*des
 func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.FieldDescriptorProto, pkg *string, parents []*descriptorpb.DescriptorProto, cpp *cppFile) error {
 	typeName := internal.ToUpperCamel(*oneof.Name) + "Case"
 	fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
-	upperName := strings.ToUpper(internal.ToSnakeCase(*oneof.Name))
 	cpp.Typedefs.PI("enum class %s {", typeName)
-	cpp.Typedefs.P("%s_NOT_SET = 0,", upperName)
+	cpp.Typedefs.P("NOT_SET = 0,")
 	for _, field := range fields {
 		cpp.Typedefs.P("k%s = %d,", internal.ToUpperCamel(*field.Name), *field.Number)
 	}
 	cpp.Typedefs.PD("};")
-	cpp.Typedefs.P("%s %s = %s::%s_NOT_SET;", typeName, fieldName, typeName, upperName)
+	cpp.Typedefs.P("%s %s = %s::NOT_SET;", typeName, fieldName, typeName)
 	cpp.Typedefs.PI("void clear_%s() {", fieldName)
-	cpp.Typedefs.P("%s = %s::%s_NOT_SET;", fieldName, typeName, upperName)
+	cpp.Typedefs.P("%s = %s::NOT_SET;", fieldName, typeName)
 	for _, field := range fields {
 		fieldType, _, err := toTypeName(field)
 		if err != nil {
@@ -200,7 +199,7 @@ func genOneof(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptorpb.F
 	cpp.TagInvokes.Deindent()
 	cpp.TagInvokes.P("default:")
 	cpp.TagInvokes.Indent()
-	cpp.TagInvokes.P("jv = (int)%s::%s_NOT_SET;", qName, upperName)
+	cpp.TagInvokes.P("jv = (int)%s::NOT_SET;", qName)
 	cpp.TagInvokes.P("break;")
 	cpp.TagInvokes.Deindent()
 	cpp.TagInvokes.PD("}")
@@ -231,13 +230,13 @@ func genEquals(desc *descriptorpb.DescriptorProto, pkg *string, parents []*descr
 		}
 	}
 	// oneof の比較
-	for _, oneof := range desc.OneofDecl {
+	for i, oneof := range desc.OneofDecl {
 		oneofFieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
 		oneofTypeName := internal.ToUpperCamel(*oneof.Name) + "Case"
 		cpp.Typedefs.P("if (a.%s != b.%s) return false;", oneofFieldName, oneofFieldName)
 
 		for _, field := range desc.Field {
-			if field.OneofIndex != nil && *field.OneofIndex == *field.OneofIndex {
+			if field.OneofIndex != nil && *field.OneofIndex == int32(i) {
 				fieldName := internal.ToSnakeCase(*field.Name)
 				enumFieldName := internal.ToUpperCamel(*field.Name)
 				cpp.Typedefs.P("if (a.%s == %s::k%s && a.%s != b.%s) return false;",
@@ -575,6 +574,7 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 
 func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	resp := &pluginpb.CodeGeneratorResponse{}
+	resp.SupportedFeatures = proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL))
 	for _, file := range req.ProtoFile {
 		respFile, err := genFile(file, req.ProtoFile)
 		if err != nil {

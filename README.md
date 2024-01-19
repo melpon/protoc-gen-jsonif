@@ -16,6 +16,7 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 - [x] message, enum 対応
 - [x] repeated 対応
 - [x] oneof 対応 
+- [x] optional 対応 
 - [x] bytes 型の対応( protoc-gen-json-cpp のみ)
 - [x] オブジェクトの等値判定対応
 - [x] テスト

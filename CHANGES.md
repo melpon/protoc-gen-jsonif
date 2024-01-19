@@ -11,6 +11,15 @@
 
 ## develop
 
+## 0.11.0 (2024-01-19)
+
+- [CHANGE] oneof の enum 値を `<FIELD_NAME>_CASE_NOT_SET` から `NOT_SET` に変更
+    - @melpon
+- [ADD] proto3 の optional 仕様に対応
+    - @melpon
+- [FIX] １つのメッセージの中に oneof を２つ以上定義するとコンパイルエラーになるのを修正
+    - @melpon
+
 ## 0.10.0 (2023-11-14)
 
 - [CHANGE] enum class にするのをやめて enum で定義する

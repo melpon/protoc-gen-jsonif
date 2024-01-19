@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package optional;
+
+enum Enum {
+    FOO = 0;
+    BAR = 1;
+}
+
+message Message {
+    string name = 1;
+}
+message Test {
+    optional int64 a = 1;
+    optional string b = 3;
+    optional Enum c = 4;
+    optional Message d = 5;
+}

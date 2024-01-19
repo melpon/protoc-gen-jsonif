@@ -33,6 +33,7 @@ pushd test/proto
     size.proto \
     jsonfield.proto \
     optimistic.proto \
+    optional.proto \
     discard_if_default.proto \
     no_serializer.proto
   $INSTALL_DIR/protoc/bin/protoc \
@@ -47,6 +48,7 @@ pushd test/proto
     message.proto \
     nested.proto \
     oneof.proto \
+    optional.proto \
     repeated.proto \
     size.proto
   $INSTALL_DIR/protoc/bin/protoc \
@@ -58,6 +60,7 @@ pushd test/proto
     message.proto \
     nested.proto \
     oneof.proto \
+    optional.proto \
     repeated.proto
 popd
 

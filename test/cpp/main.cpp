@@ -11,6 +11,7 @@
 #include "nested.json.h"
 #include "repeated.json.h"
 #include "oneof.json.h"
+#include "optional.json.h"
 #include "importing.json.h"
 #include "bytes.json.h"
 #include "jsonfield.json.h"
@@ -102,9 +103,9 @@ void test_repeated() {
 
 void test_oneof() {
   oneof::Test a;
-  assert(a.test_oneof_case == oneof::Test::TestOneofCase::TEST_ONEOF_NOT_SET);
+  assert(a.test_oneof_case == oneof::Test::TestOneofCase::NOT_SET);
   a = identify(a);
-  assert(a.test_oneof_case == oneof::Test::TestOneofCase::TEST_ONEOF_NOT_SET);
+  assert(a.test_oneof_case == oneof::Test::TestOneofCase::NOT_SET);
 
   a.set_a(1);
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::kA);
@@ -135,7 +136,57 @@ void test_oneof() {
   assert(a.d.name == "bar");
 
   a.clear_test_oneof_case();
-  assert(a.test_oneof_case == oneof::Test::TestOneofCase::TEST_ONEOF_NOT_SET);
+  assert(a.test_oneof_case == oneof::Test::TestOneofCase::NOT_SET);
+}
+
+void test_optional() {
+  optional::Test a;
+  assert(a._a_case == optional::Test::ACase::NOT_SET);
+  assert(a._b_case == optional::Test::BCase::NOT_SET);
+  assert(a._c_case == optional::Test::CCase::NOT_SET);
+  assert(a._d_case == optional::Test::DCase::NOT_SET);
+  a = identify(a);
+  assert(a._a_case == optional::Test::ACase::NOT_SET);
+  assert(a._b_case == optional::Test::BCase::NOT_SET);
+  assert(a._c_case == optional::Test::CCase::NOT_SET);
+  assert(a._d_case == optional::Test::DCase::NOT_SET);
+
+  a.set_a(1);
+  assert(a._a_case == optional::Test::ACase::kA);
+  assert(a.a == 1);
+  a = identify(a);
+  assert(a._a_case == optional::Test::ACase::kA);
+  assert(a.a == 1);
+
+  a.set_b("foo");
+  assert(a._b_case == optional::Test::BCase::kB);
+  assert(a.b == "foo");
+  a = identify(a);
+  assert(a._b_case == optional::Test::BCase::kB);
+  assert(a.b == "foo");
+
+  a.set_c(optional::BAR);
+  assert(a._c_case == optional::Test::CCase::kC);
+  assert(a.c == optional::BAR);
+  a = identify(a);
+  assert(a._c_case == optional::Test::CCase::kC);
+  assert(a.c == optional::BAR);
+
+  a.set_d(optional::Message{"bar"});
+  assert(a._d_case == optional::Test::DCase::kD);
+  assert(a.d.name == "bar");
+  a = identify(a);
+  assert(a._d_case == optional::Test::DCase::kD);
+  assert(a.d.name == "bar");
+
+  a.clear__a_case();
+  assert(a._a_case == optional::Test::ACase::NOT_SET);
+  a.clear__b_case();
+  assert(a._b_case == optional::Test::BCase::NOT_SET);
+  a.clear__c_case();
+  assert(a._c_case == optional::Test::CCase::NOT_SET);
+  a.clear__d_case();
+  assert(a._d_case == optional::Test::DCase::NOT_SET);
 }
 
 void test_importing() {
@@ -240,6 +291,7 @@ int main() {
   test_nested();
   test_repeated();
   test_oneof();
+  test_optional();
   test_importing();
   test_bytes();
   test_jsonfield();

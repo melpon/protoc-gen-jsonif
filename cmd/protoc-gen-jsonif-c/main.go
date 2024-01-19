@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/melpon/protoc-gen-jsonif/cmd/internal"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 )
@@ -958,6 +959,7 @@ func genFile(file *descriptorpb.FileDescriptorProto, files []*descriptorpb.FileD
 
 func gen(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	resp := &pluginpb.CodeGeneratorResponse{}
+	resp.SupportedFeatures = proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL))
 	for _, file := range req.ProtoFile {
 		respFiles, err := genFile(file, req.ProtoFile)
 		if err != nil {
