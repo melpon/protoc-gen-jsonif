@@ -254,6 +254,17 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			u.Typedefs.P("%s = %s.k%s;", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
 			u.Typedefs.P("this.%s = %s;", fieldName, fieldName)
 			u.Typedefs.PD("}")
+			u.Typedefs.P("public bool Has%s()", internal.ToUpperCamel(fieldName))
+			u.Typedefs.PI("{")
+			u.Typedefs.P("return %s == %s.k%s;", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
+			u.Typedefs.PD("}")
+			u.Typedefs.P("public void Clear%s()", internal.ToUpperCamel(fieldName))
+			u.Typedefs.PI("{")
+			u.Typedefs.P("if (%s == %s.k%s)", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
+			u.Typedefs.PI("{")
+			u.Typedefs.P("Clear%s();", oneofTypeName)
+			u.Typedefs.PD("}")
+			u.Typedefs.PD("}")
 		}
 	}
 

@@ -37,12 +37,16 @@ void test_empty() {
 void test_message() {
   message::Person a;
   assert(a.name == "");
+  assert(a.flag == false);
   a = identify(a);
   assert(a.name == "");
+  assert(a.flag == false);
 
   a.name = "foo";
+  a.flag = true;
   a = identify(a);
   assert(a.name == "foo");
+  assert(a.flag == true);
 }
 
 void test_enumpb() {
@@ -135,58 +139,65 @@ void test_oneof() {
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::kD);
   assert(a.d.name == "bar");
 
+  a.clear_c();
+  assert(a.d.name == "bar");
+  assert(a.test_oneof_case == oneof::Test::TestOneofCase::kD);
+  a.clear_d();
+  assert(a.test_oneof_case == oneof::Test::TestOneofCase::NOT_SET);
+
+  a.set_a(10);
   a.clear_test_oneof_case();
   assert(a.test_oneof_case == oneof::Test::TestOneofCase::NOT_SET);
 }
 
 void test_optional() {
   optional::Test a;
-  assert(a._a_case == optional::Test::ACase::NOT_SET);
-  assert(a._b_case == optional::Test::BCase::NOT_SET);
-  assert(a._c_case == optional::Test::CCase::NOT_SET);
-  assert(a._d_case == optional::Test::DCase::NOT_SET);
+  assert(!a.has_a());
+  assert(!a.has_b());
+  assert(!a.has_c());
+  assert(!a.has_d());
   a = identify(a);
-  assert(a._a_case == optional::Test::ACase::NOT_SET);
-  assert(a._b_case == optional::Test::BCase::NOT_SET);
-  assert(a._c_case == optional::Test::CCase::NOT_SET);
-  assert(a._d_case == optional::Test::DCase::NOT_SET);
+  assert(!a.has_a());
+  assert(!a.has_b());
+  assert(!a.has_c());
+  assert(!a.has_d());
 
   a.set_a(1);
-  assert(a._a_case == optional::Test::ACase::kA);
+  assert(a.has_a());
   assert(a.a == 1);
   a = identify(a);
-  assert(a._a_case == optional::Test::ACase::kA);
+  assert(a.has_a());
   assert(a.a == 1);
 
   a.set_b("foo");
-  assert(a._b_case == optional::Test::BCase::kB);
+  assert(a.has_b());
   assert(a.b == "foo");
   a = identify(a);
-  assert(a._b_case == optional::Test::BCase::kB);
+  assert(a.has_b());
   assert(a.b == "foo");
 
   a.set_c(optional::BAR);
-  assert(a._c_case == optional::Test::CCase::kC);
+  assert(a.has_c());
   assert(a.c == optional::BAR);
   a = identify(a);
-  assert(a._c_case == optional::Test::CCase::kC);
+  assert(a.has_c());
   assert(a.c == optional::BAR);
 
   a.set_d(optional::Message{"bar"});
-  assert(a._d_case == optional::Test::DCase::kD);
+  assert(a.has_d());
   assert(a.d.name == "bar");
   a = identify(a);
-  assert(a._d_case == optional::Test::DCase::kD);
+  assert(a.has_d());
   assert(a.d.name == "bar");
 
-  a.clear__a_case();
-  assert(a._a_case == optional::Test::ACase::NOT_SET);
-  a.clear__b_case();
-  assert(a._b_case == optional::Test::BCase::NOT_SET);
-  a.clear__c_case();
-  assert(a._c_case == optional::Test::CCase::NOT_SET);
-  a.clear__d_case();
-  assert(a._d_case == optional::Test::DCase::NOT_SET);
+  a.clear_a();
+  assert(!a.has_a());
+  a.clear_b();
+  assert(!a.has_b());
+  a.clear_c();
+  assert(!a.has_c());
+  a.clear_d();
+  assert(!a.has_d());
 }
 
 void test_importing() {

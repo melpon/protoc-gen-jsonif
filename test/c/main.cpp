@@ -60,18 +60,22 @@ void test_message() {
   message_Person_init(&a);
   assert(a.name == NULL);
   assert(a.name_len == 0);
+  assert(a.flag == false);
   message_Person b;
   message_Person_init(&b);
   TEST_IDENTIFY(message_Person, &a, &b);
   assert(b.name == NULL);
   assert(b.name_len == 0);
+  assert(a.flag == false);
 
   message_Person_set_name(&b, "foo");
+  message_Person_set_flag(&b, true);
   message_Person c;
   message_Person_init(&c);
   TEST_IDENTIFY(message_Person, &b, &c);
   assert(strcmp(c.name, "foo") == 0);
   assert(c.name_len == 3);
+  assert(c.flag == true);
 
   message_Person_destroy(&a);
   message_Person_destroy(&b);
@@ -217,29 +221,35 @@ void test_optional() {
   optional_Test_init(&a);
   optional_Test b;
   optional_Test_init(&b);
-  assert(a._a_case == optional_Test_ACase_NOT_SET);
+  assert(!optional_Test_has_a(&a));
+  assert(!optional_Test_has_b(&a));
+  assert(!optional_Test_has_c(&a));
+  assert(!optional_Test_has_d(&a));
   TEST_IDENTIFY(optional_Test, &a, &b);
-  assert(b._a_case == optional_Test_ACase_NOT_SET);
+  assert(!optional_Test_has_a(&a));
+  assert(!optional_Test_has_b(&a));
+  assert(!optional_Test_has_c(&a));
+  assert(!optional_Test_has_d(&a));
 
   optional_Test_set_a(&a, 1);
-  assert(a._a_case == optional_Test_ACase_kA);
+  assert(optional_Test_has_a(&a));
   assert(a.a == 1);
   TEST_IDENTIFY(optional_Test, &a, &b);
-  assert(b._a_case == optional_Test_ACase_kA);
+  assert(optional_Test_has_a(&b));
   assert(b.a == 1);
 
   optional_Test_set_b(&a, "foo");
-  assert(a._b_case == optional_Test_BCase_kB);
+  assert(optional_Test_has_b(&a));
   assert(a.b_len == 3 && strcmp(a.b, "foo") == 0);
   TEST_IDENTIFY(optional_Test, &a, &b);
-  assert(b._b_case == optional_Test_BCase_kB);
+  assert(optional_Test_has_b(&b));
   assert(b.b_len == 3 && strcmp(b.b, "foo") == 0);
 
   optional_Test_set_c(&a, optional_BAR);
-  assert(a._c_case == optional_Test_CCase_kC);
+  assert(optional_Test_has_c(&a));
   assert(a.c == optional_BAR);
   TEST_IDENTIFY(optional_Test, &a, &b);
-  assert(b._c_case == optional_Test_CCase_kC);
+  assert(optional_Test_has_c(&b));
   assert(b.c == optional_BAR);
 
   optional_Message m;
@@ -247,20 +257,20 @@ void test_optional() {
   optional_Message_set_name(&m, "bar");
   optional_Test_set_d(&a, &m);
   optional_Message_destroy(&m);
-  assert(a._d_case == optional_Test_DCase_kD);
+  assert(optional_Test_has_d(&a));
   assert(a.d.name_len == 3 && strcmp(a.d.name, "bar") == 0);
   TEST_IDENTIFY(optional_Test, &a, &b);
-  assert(b._d_case == optional_Test_DCase_kD);
+  assert(optional_Test_has_d(&b));
   assert(b.d.name_len == 3 && strcmp(b.d.name, "bar") == 0);
 
-  optional_Test_clear__a_case(&a);
-  assert(a._a_case == optional_Test_ACase_NOT_SET);
-  optional_Test_clear__b_case(&a);
-  assert(a._b_case == optional_Test_BCase_NOT_SET);
-  optional_Test_clear__c_case(&a);
-  assert(a._c_case == optional_Test_CCase_NOT_SET);
-  optional_Test_clear__d_case(&a);
-  assert(a._d_case == optional_Test_DCase_NOT_SET);
+  optional_Test_clear_a(&a);
+  assert(!optional_Test_has_a(&a));
+  optional_Test_clear_b(&a);
+  assert(!optional_Test_has_b(&a));
+  optional_Test_clear_c(&a);
+  assert(!optional_Test_has_c(&a));
+  optional_Test_clear_d(&a);
+  assert(!optional_Test_has_d(&a));
 
   optional_Test_destroy(&a);
   optional_Test_destroy(&b);

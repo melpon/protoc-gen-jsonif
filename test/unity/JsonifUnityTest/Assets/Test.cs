@@ -25,12 +25,16 @@ public class Test : MonoBehaviour
     {
         var a = new Message.Person();
         D.Assert(a.name == "");
+        D.Assert(a.flag == false);
         a = Identify(a);
         D.Assert(a.name == "");
+        D.Assert(a.flag == false);
 
         a.name = "foo";
+        a.flag = true;
         a = Identify(a);
         D.Assert(a.name == "foo");
+        D.Assert(a.flag == true);
     }
 
 
@@ -136,52 +140,52 @@ public class Test : MonoBehaviour
     void TestOptional()
     {
         var a = new Optional.Test();
-        D.Assert(a._a_case == Optional.Test.ACase.NOT_SET);
-        D.Assert(a._b_case == Optional.Test.BCase.NOT_SET);
-        D.Assert(a._c_case == Optional.Test.CCase.NOT_SET);
-        D.Assert(a._d_case == Optional.Test.DCase.NOT_SET);
+        D.Assert(!a.HasA());
+        D.Assert(!a.HasB());
+        D.Assert(!a.HasC());
+        D.Assert(!a.HasD());
         a = Identify(a);
-        D.Assert(a._a_case == Optional.Test.ACase.NOT_SET);
-        D.Assert(a._b_case == Optional.Test.BCase.NOT_SET);
-        D.Assert(a._c_case == Optional.Test.CCase.NOT_SET);
-        D.Assert(a._d_case == Optional.Test.DCase.NOT_SET);
+        D.Assert(!a.HasA());
+        D.Assert(!a.HasB());
+        D.Assert(!a.HasC());
+        D.Assert(!a.HasD());
 
         a.SetA(1);
-        D.Assert(a._a_case == Optional.Test.ACase.kA);
+        D.Assert(a.HasA());
         D.Assert(a.a == 1);
         a = Identify(a);
-        D.Assert(a._a_case == Optional.Test.ACase.kA);
+        D.Assert(a.HasA());
         D.Assert(a.a == 1);
 
         a.SetB("foo");
-        D.Assert(a._b_case == Optional.Test.BCase.kB);
+        D.Assert(a.HasB());
         D.Assert(a.b == "foo");
         a = Identify(a);
-        D.Assert(a._b_case == Optional.Test.BCase.kB);
+        D.Assert(a.HasB());
         D.Assert(a.b == "foo");
 
         a.SetC(Optional.Enum.BAR);
-        D.Assert(a._c_case == Optional.Test.CCase.kC);
+        D.Assert(a.HasC());
         D.Assert(a.c == Optional.Enum.BAR);
         a = Identify(a);
-        D.Assert(a._c_case == Optional.Test.CCase.kC);
+        D.Assert(a.HasC());
         D.Assert(a.c == Optional.Enum.BAR);
 
         a.SetD(new Optional.Message() { name = "bar" });
-        D.Assert(a._d_case == Optional.Test.DCase.kD);
+        D.Assert(a.HasD());
         D.Assert(a.d.name == "bar");
         a = Identify(a);
-        D.Assert(a._d_case == Optional.Test.DCase.kD);
+        D.Assert(a.HasD());
         D.Assert(a.d.name == "bar");
 
-        a.ClearACase();
-        D.Assert(a._a_case == Optional.Test.ACase.NOT_SET);
-        a.ClearBCase();
-        D.Assert(a._b_case == Optional.Test.BCase.NOT_SET);
-        a.ClearCCase();
-        D.Assert(a._c_case == Optional.Test.CCase.NOT_SET);
-        a.ClearDCase();
-        D.Assert(a._d_case == Optional.Test.DCase.NOT_SET);
+        a.ClearA();
+        D.Assert(!a.HasA());
+        a.ClearB();
+        D.Assert(!a.HasB());
+        a.ClearC();
+        D.Assert(!a.HasC());
+        a.ClearD();
+        D.Assert(!a.HasD());
     }
 
     void TestImporting()

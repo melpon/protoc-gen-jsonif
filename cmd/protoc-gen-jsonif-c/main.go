@@ -401,6 +401,19 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 	}
 	cpp.Typedefs.P("")
 
+	// optional has_<field> declarations
+	// optional clear_<field> declarations
+	// oneof clear_<field> declarations
+	for _, field := range desc.Field {
+		fieldName := internal.ToSnakeCase(*field.Name)
+		if oneof := field.OneofIndex; oneof != nil {
+			if field.Proto3Optional != nil && *field.Proto3Optional {
+				cpp.Typedefs.P("bool %s_has_%s(const %s* v);", qName, fieldName, qName)
+			}
+			cpp.Typedefs.P("void %s_clear_%s(%s* v);", qName, fieldName, qName)
+		}
+	}
+
 	// oneof clear_<case> declarations
 	for _, oneof := range desc.OneofDecl {
 		fieldName := internal.ToSnakeCase(*oneof.Name) + "_case"
@@ -757,6 +770,31 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 					cpp.CImpl.PD("}")
 				}
 			}
+		}
+	}
+
+	// optional has_<field>
+	// optional clear_<field>
+	// oneof clear_<field>
+	for _, field := range desc.Field {
+		fieldName := internal.ToSnakeCase(*field.Name)
+		if oneof := field.OneofIndex; oneof != nil {
+			oneofTypeName := internal.ToUpperCamel(*desc.OneofDecl[*oneof].Name) + "Case"
+			oneofFieldName := internal.ToSnakeCase(*desc.OneofDecl[*oneof].Name) + "_case"
+			oneofQName, err := toQualifiedName(oneofTypeName, pkg, append(parents, desc))
+			if err != nil {
+				return err
+			}
+			if field.Proto3Optional != nil && *field.Proto3Optional {
+				cpp.CImpl.PI("bool %s_has_%s(const %s* v) {", qName, fieldName, qName)
+				cpp.CImpl.P("return v->%s == %s_k%s;", oneofFieldName, oneofQName, internal.ToUpperCamel(*field.Name))
+				cpp.CImpl.PD("}")
+			}
+			cpp.CImpl.PI("void %s_clear_%s(%s* v) {", qName, fieldName, qName)
+			cpp.CImpl.PI("if (v->%s == %s_k%s) {", oneofFieldName, oneofQName, internal.ToUpperCamel(*field.Name))
+			cpp.CImpl.P("%s_clear_%s(v);", qName, oneofFieldName)
+			cpp.CImpl.PD("}")
+			cpp.CImpl.PD("}")
 		}
 	}
 

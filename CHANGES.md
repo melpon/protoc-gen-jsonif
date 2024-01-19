@@ -11,6 +11,13 @@
 
 ## develop
 
+## 0.12.0 (2024-01-19)
+
+- [ADD] optional フィールドに `has_<field>` 関数を追加
+    - @melpon
+- [ADD] oneof, optional フィールドに `clear_<field>` 関数を追加
+    - @melpon
+
 ## 0.11.0 (2024-01-19)
 
 - [CHANGE] oneof の enum 値を `<FIELD_NAME>_CASE_NOT_SET` から `NOT_SET` に変更

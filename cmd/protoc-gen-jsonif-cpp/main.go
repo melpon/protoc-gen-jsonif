@@ -302,6 +302,16 @@ func genDescriptor(desc *descriptorpb.DescriptorProto, pkg *string, parents []*d
 			cpp.Typedefs.P("%s = %s::k%s;", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
 			cpp.Typedefs.P("this->%s = %s;", fieldName, fieldName)
 			cpp.Typedefs.PD("}")
+			if field.Proto3Optional != nil && *field.Proto3Optional {
+				cpp.Typedefs.PI("bool has_%s() const {", fieldName)
+				cpp.Typedefs.P("return %s == %s::k%s;", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
+				cpp.Typedefs.PD("}")
+			}
+			cpp.Typedefs.PI("void clear_%s() {", fieldName)
+			cpp.Typedefs.PI("if (%s == %s::k%s) {", oneofFieldName, oneofTypeName, internal.ToUpperCamel(fieldName))
+			cpp.Typedefs.P("clear_%s();", oneofFieldName)
+			cpp.Typedefs.PD("}")
+			cpp.Typedefs.PD("}")
 		}
 	}
 
