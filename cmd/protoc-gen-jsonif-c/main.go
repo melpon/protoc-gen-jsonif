@@ -175,11 +175,18 @@ func genOneofEnum(oneof *descriptorpb.OneofDescriptorProto, fields []*descriptor
 	}
 	cpp.Enums.P("// %s", *oneof.Name)
 	cpp.Enums.P("typedef int %s;", qName)
-	cpp.Enums.P("const %s %s_NOT_SET = 0;", qName, qName)
+	cpp.Enums.P("extern const %s %s_NOT_SET;", qName, qName)
 	for _, field := range fields {
-		cpp.Enums.P("const %s %s_k%s = %d;", qName, qName, internal.ToUpperCamel(*field.Name), *field.Number)
+		cpp.Enums.P("extern const %s %s_k%s;", qName, qName, internal.ToUpperCamel(*field.Name))
 	}
 	cpp.Enums.P("")
+
+	cpp.CppImpl.P("// %s", *oneof.Name)
+	cpp.CppImpl.P("const %s %s_NOT_SET = 0;", qName, qName)
+	for _, field := range fields {
+		cpp.CppImpl.P("const %s %s_k%s = %d;", qName, qName, internal.ToUpperCamel(*field.Name), *field.Number)
+	}
+	cpp.CppImpl.P("")
 
 	return nil
 }

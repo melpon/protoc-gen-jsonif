@@ -64,11 +64,39 @@ pushd test/proto
     repeated.proto
 popd
 
-g++ test/cpp/main.cpp -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/boost/include/ -o $BUILD_DIR/test/cpp/test
+g++ test/cpp/main.cpp \
+  -I $BUILD_DIR/test/cpp \
+  -I $INSTALL_DIR/boost/include/ \
+  -o $BUILD_DIR/test/cpp/test
 $BUILD_DIR/test/cpp/test
 
-g++ test/cpp/main.cpp -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/json/include/ -o $BUILD_DIR/test/cpp/test_nlohmann -DJSONIF_USE_NLOHMANN_JSON
+g++ test/cpp/main.cpp \
+  -I $BUILD_DIR/test/cpp \
+  -I $INSTALL_DIR/json/include/ \
+  -o $BUILD_DIR/test/cpp/test_nlohmann \
+  -DJSONIF_USE_NLOHMANN_JSON
 $BUILD_DIR/test/cpp/test_nlohmann
 
-g++ test/c/main.cpp -g $BUILD_DIR/test/c/*.cpp $BUILD_DIR/test/c/google/protobuf/*.cpp -I $BUILD_DIR/test/c -I $BUILD_DIR/test/cpp -I $INSTALL_DIR/boost/include/ -o $BUILD_DIR/test/c/test
+g++ -g \
+  test/c/main.cpp \
+  $BUILD_DIR/test/c/*.cpp \
+  $BUILD_DIR/test/c/google/protobuf/*.cpp \
+  -I $BUILD_DIR/test/c \
+  -I $BUILD_DIR/test/cpp \
+  -I $INSTALL_DIR/boost/include/ \
+  -o $BUILD_DIR/test/c/test
+$BUILD_DIR/test/c/test
+
+# 複数ファイルで同じ変数や関数を定義している場合にリンクエラーにならないことを確認する
+gcc \
+  test/c/multidef_1.c \
+  test/c/multidef_2.c \
+  test/c/multidef.cpp \
+  $BUILD_DIR/test/c/*.cpp \
+  $BUILD_DIR/test/c/google/protobuf/*.cpp \
+  -lstdc++ \
+  -I $BUILD_DIR/test/c \
+  -I $BUILD_DIR/test/cpp \
+  -I $INSTALL_DIR/boost/include/ \
+  -o $BUILD_DIR/test/c/test_multidef
 $BUILD_DIR/test/c/test

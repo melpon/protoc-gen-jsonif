@@ -1,7 +1,10 @@
 {
     "files.associations": {
         "*.cs": "csharp",
+        "CMakeLists.txt": "cmake",
         "vector": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "oneof.json.c.h": "c",
+        "repeated.json.c.h": "c"
     }
 }

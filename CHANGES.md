@@ -11,6 +11,9 @@
 
 ## develop
 
+- [FIX] C の oneof 値が extern になってなかったのを修正
+    - @melpon
+
 ## 0.12.0 (2024-01-19)
 
 - [ADD] optional フィールドに `has_<field>` 関数を追加
