@@ -11,7 +11,9 @@
 
 ## develop
 
-- [ADD] TypeScript の生成を追加
+## 0.13.0 (2024-06-27)
+
+- [ADD] TypeScript 用のコード生成を追加
     - @melpon
 
 ## 0.12.1 (2024-02-24)
