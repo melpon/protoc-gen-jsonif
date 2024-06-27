@@ -16,3 +16,5 @@
 
 /_build
 /_install
+/test/typescript/node_modules
+/test/typescript/dist

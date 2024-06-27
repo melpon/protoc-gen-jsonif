@@ -8,6 +8,8 @@ BUILD_DIR="`pwd`/_build"
 mkdir -p $BUILD_DIR
 mkdir -p $INSTALL_DIR
 
+go install github.com/golang/protobuf/protoc-gen-go
+
 # protoc
 PROTOC_VERSION="24.4"
 

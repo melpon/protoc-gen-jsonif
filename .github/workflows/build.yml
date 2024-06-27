@@ -23,6 +23,7 @@ jobs:
           go build -o $DIR/protoc-gen-jsonif-c.exe cmd/protoc-gen-jsonif-c/main.go
           go build -o $DIR/protoc-gen-jsonif-cpp.exe cmd/protoc-gen-jsonif-cpp/main.go
           go build -o $DIR/protoc-gen-jsonif-unity.exe cmd/protoc-gen-jsonif-unity/main.go
+          go build -o $DIR/protoc-gen-jsonif-typescript.exe cmd/protoc-gen-jsonif-typescript/main.go
         env:
           GOOS: windows
           GOARCH: amd64
@@ -33,6 +34,7 @@ jobs:
           go build -o $DIR/protoc-gen-jsonif-c cmd/protoc-gen-jsonif-c/main.go
           go build -o $DIR/protoc-gen-jsonif-cpp cmd/protoc-gen-jsonif-cpp/main.go
           go build -o $DIR/protoc-gen-jsonif-unity cmd/protoc-gen-jsonif-unity/main.go
+          go build -o $DIR/protoc-gen-jsonif-typescript cmd/protoc-gen-jsonif-typescript/main.go
         env:
           GOOS: darwin
           GOARCH: amd64
@@ -43,6 +45,7 @@ jobs:
           go build -o $DIR/protoc-gen-jsonif-c cmd/protoc-gen-jsonif-c/main.go
           go build -o $DIR/protoc-gen-jsonif-cpp cmd/protoc-gen-jsonif-cpp/main.go
           go build -o $DIR/protoc-gen-jsonif-unity cmd/protoc-gen-jsonif-unity/main.go
+          go build -o $DIR/protoc-gen-jsonif-typescript cmd/protoc-gen-jsonif-typescript/main.go
         env:
           GOOS: darwin
           GOARCH: arm64
@@ -53,6 +56,7 @@ jobs:
           go build -o $DIR/protoc-gen-jsonif-c cmd/protoc-gen-jsonif-c/main.go
           go build -o $DIR/protoc-gen-jsonif-cpp cmd/protoc-gen-jsonif-cpp/main.go
           go build -o $DIR/protoc-gen-jsonif-unity cmd/protoc-gen-jsonif-unity/main.go
+          go build -o $DIR/protoc-gen-jsonif-typescript cmd/protoc-gen-jsonif-typescript/main.go
         env:
           GOOS: linux
           GOARCH: amd64

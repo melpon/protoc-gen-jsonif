@@ -6,8 +6,13 @@ INSTALL_DIR="`pwd`/_install"
 BUILD_DIR="`pwd`/_build"
 PROTO_DIR="`pwd`/proto"
 
+rm -rf $BUILD_DIR/test/cpp
+rm -rf $BUILD_DIR/test/c
+rm -rf $BUILD_DIR/test/typescript
+rm -rf test/unity/JsonifUnityTest/Assets/Generated
 mkdir -p $BUILD_DIR/test/cpp
 mkdir -p $BUILD_DIR/test/c
+mkdir -p $BUILD_DIR/test/typescript
 mkdir -p test/unity/JsonifUnityTest/Assets/Generated
 
 $INSTALL_DIR/protoc/bin/protoc -I$PROTO_DIR --go_out=. $PROTO_DIR/extensions.proto
@@ -15,6 +20,7 @@ $INSTALL_DIR/protoc/bin/protoc -I$PROTO_DIR --go_out=. $PROTO_DIR/extensions.pro
 go build -o $BUILD_DIR/test/protoc-gen-jsonif-cpp cmd/protoc-gen-jsonif-cpp/main.go
 go build -o $BUILD_DIR/test/protoc-gen-jsonif-c cmd/protoc-gen-jsonif-c/main.go
 go build -o $BUILD_DIR/test/protoc-gen-jsonif-unity cmd/protoc-gen-jsonif-unity/main.go
+go build -o $BUILD_DIR/test/protoc-gen-jsonif-typescript cmd/protoc-gen-jsonif-typescript/main.go
 
 pushd test/proto
   $INSTALL_DIR/protoc/bin/protoc \
@@ -62,6 +68,17 @@ pushd test/proto
     oneof.proto \
     optional.proto \
     repeated.proto
+  $INSTALL_DIR/protoc/bin/protoc \
+    --plugin=protoc-gen-jsonif-typescript=$BUILD_DIR/test/protoc-gen-jsonif-typescript \
+    --jsonif-typescript_out=$BUILD_DIR/test/typescript \
+    empty.proto \
+    enumpb.proto \
+    importing.proto \
+    message.proto \
+    nested.proto \
+    oneof.proto \
+    optional.proto \
+    repeated.proto
 popd
 
 g++ test/cpp/main.cpp \
@@ -100,3 +117,10 @@ gcc \
   -I $INSTALL_DIR/boost/include/ \
   -o $BUILD_DIR/test/c/test_multidef
 $BUILD_DIR/test/c/test
+
+# TypeScript のテスト
+pushd test/typescript
+  rm -rf dist/
+  npx webpack
+  node dist/main.js
+popd
