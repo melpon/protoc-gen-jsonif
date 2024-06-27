@@ -11,6 +11,9 @@
 
 ## develop
 
+- [ADD] TypeScript の生成を追加
+    - @melpon
+
 ## 0.12.1 (2024-02-24)
 
 - [FIX] C の oneof 値が extern になってなかったのを修正

@@ -13,6 +13,7 @@ proto ファイルから、JSON フォーマットでやりとりする型定義
 - [x] C++ 用コードの出力 (Boost.JSON または nlohmann/json 利用)
 - [x] Unity 用コードの出力
 - [x] C 用コードの出力（コンパイルには C++ 用コードが必要）
+- [x] TypeScript 用コードの出力
 - [x] message, enum 対応
 - [x] repeated 対応
 - [x] oneof 対応 
