@@ -318,8 +318,8 @@ protoc --jsonif-typescript_out=out/ test.proto
 こうすると TypeScript 用のファイルが自動生成されて、以下のように JSON 文字列をシリアライズ・デシリアライズ可能になります。
 
 ```typescript
-import * as test import "./test";
-import * as jsonif import "./jsonif";
+import * as test from "./test";
+import * as jsonif from "./jsonif";
 
 var p = new test.PersonList();
 p.people.push(new test.Person({name: "hoge"}));
