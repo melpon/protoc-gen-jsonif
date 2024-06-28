@@ -307,6 +307,141 @@ namespace Jsonif
 }
 ```
 
+### TypeScript
+
+TypeScript 用のファイルを出力するには以下のように利用します。
+
+```bash
+protoc --jsonif-typescript_out=out/ test.proto
+```
+
+こうすると TypeScript 用のファイルが自動生成されて、以下のように JSON 文字列をシリアライズ・デシリアライズ可能になります。
+
+```typescript
+import * as test import "./test";
+import * as jsonif import "./jsonif";
+
+var p = new test.PersonList();
+p.people.push(new test.Person({name: "hoge"}));
+p.people.push(new test.Person({name: "fuga"}));
+
+// JSON 文字列への変換
+const str = jsonif.toJson(p);
+console.log(str)
+// → {"people":[{"name":"hoge"},{"name":"fuga"}]}
+
+// JSON 文字列から元に戻す
+p = jsonif.fromJson<test.PersonList>(str, test.PersonList);
+
+console.log(p.people[0].name);
+// → hoge
+
+console.log(p.people[1].name);
+// → fuga
+```
+
+自動生成された `test.ts` と `jsonif.ts` は以下のようになっています（若干変わっている可能性もあります）。
+TypeScript 版では内部的に JSON.parse() と JSON.stringify() を利用しています。
+
+```typescript
+// test.ts
+
+export type PersonObject = {
+    name?: string;
+}
+
+export class Person {
+    name: string = "";
+    constructor(obj: PersonObject = {}) {
+        if (obj.name !== undefined) {
+            this.name = obj.name;
+        }
+    }
+    getType(): typeof Person {
+        return Person;
+    }
+    static fromJson(json: string): Person {
+        return Person.fromObject(JSON.parse(json));
+    }
+    toJson(): string {
+        return JSON.stringify(this.toObject());
+    }
+    static fromObject(obj: PersonObject): Person {
+        return new Person(obj);
+    }
+    toObject(): PersonObject {
+        return {
+            name: this.name,
+        };
+    }
+}
+
+export type PersonListObject = {
+    people?: PersonObject[];
+}
+
+export class PersonList {
+    people: Person[] = [];
+    constructor(obj: PersonListObject = {}) {
+        if (obj.people !== undefined) {
+            this.people = obj.people.map((x) => Person.fromObject(x));
+        }
+    }
+    getType(): typeof PersonList {
+        return PersonList;
+    }
+    static fromJson(json: string): PersonList {
+        return PersonList.fromObject(JSON.parse(json));
+    }
+    toJson(): string {
+        return JSON.stringify(this.toObject());
+    }
+    static fromObject(obj: PersonListObject): PersonList {
+        return new PersonList(obj);
+    }
+    toObject(): PersonListObject {
+        return {
+            people: this.people.map((x) => x.toObject()),
+        };
+    }
+}
+
+```
+```typescript
+// jsonif.ts
+export interface Jsonif<T> {
+    getType: () => { fromJson(json: string): T };
+    toJson: () => string;
+}
+
+export function getType<T extends number | string | boolean | Jsonif<T>>(v: T): any {
+    if ((v as any).getType !== undefined) {
+        return (v as any).getType();
+    } else {
+        return v.constructor as any;
+    }
+}
+
+export function fromJson<T>(v: string, type: any): T {
+    if (type.fromJson !== undefined) {
+        return type.fromJson(v) as T;
+    } else {
+        return JSON.parse(v) as T;
+    }
+}
+
+export function toJson<T extends number | string | boolean | Jsonif<T>>(v: T): string {
+    if (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') {
+        return JSON.stringify(v);
+    } else {
+        return v.toJson();
+    }
+}
+```
+
+なお、TypeScript 版はパッケージの指定を無視します。
+import 側で名前を指定して競合を避けて下さい。
+
 ## FAQ
 
 ### Q. jsonif って何？
